@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { db } from './db';
 import { Sheet } from './components/Sheet';
 import { RestBar } from './components/RestBar';
+import { Toast } from './components/Toast';
 import { fmtWeight } from './format';
 import { ExercisesScreen } from './screens/ExercisesScreen';
 import { HistoryScreen, WorkoutDetail } from './screens/HistoryScreen';
@@ -16,7 +17,7 @@ type Tab = 'home' | 'templates' | 'history' | 'exercises';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Trainen', icon: '🏋️' },
-  { id: 'templates', label: "Schema's", icon: '📋' },
+  { id: 'templates', label: "Programma's", icon: '📋' },
   { id: 'history', label: 'Historie', icon: '📅' },
   { id: 'exercises', label: 'Oefeningen', icon: '💪' },
 ];
@@ -33,7 +34,7 @@ export function App() {
   const active = useLiveQuery(() => db.workouts.filter((w) => !w.endedAt).first(), []);
 
   if (active && workoutOpen) {
-    return (
+    return withToast(
       <WorkoutScreen
         workout={active}
         onMinimize={() => setWorkoutOpen(false)}
@@ -41,15 +42,15 @@ export function App() {
           setSummary({ workoutId, prs });
           setTab('history');
         }}
-      />
+      />,
     );
   }
 
   if (editingTemplate !== undefined) {
-    return <TemplateEditor templateId={editingTemplate ?? undefined} onClose={() => setEditingTemplate(undefined)} />;
+    return withToast(<TemplateEditor templateId={editingTemplate ?? undefined} onClose={() => setEditingTemplate(undefined)} />);
   }
 
-  return (
+  return withToast(
     <div className="app">
       {tab === 'home' && (
         <HomeScreen
@@ -61,7 +62,7 @@ export function App() {
       )}
       {tab === 'templates' && <TemplatesScreen onEdit={(id) => setEditingTemplate(id ?? null)} />}
       {tab === 'history' && <HistoryScreen onOpen={setDetailId} />}
-      {tab === 'exercises' && <ExercisesScreen />}
+      {tab === 'exercises' && <ExercisesScreen onOpenWorkout={() => setWorkoutOpen(true)} />}
 
       <div className="bottom">
         {active && (
@@ -112,6 +113,15 @@ export function App() {
           </button>
         </Sheet>
       )}
-    </div>
+    </div>,
+  );
+}
+
+function withToast(content: ReactNode) {
+  return (
+    <>
+      {content}
+      <Toast />
+    </>
   );
 }

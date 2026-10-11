@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 
 export interface Settings {
-  restSeconds: number;
+  barWeight: number; // empty barbell in kg
+  weightStep: number; // smallest weight increment in kg
 }
 
-const DEFAULTS: Settings = { restSeconds: 90 };
+const DEFAULTS: Settings = { barWeight: 20, weightStep: 2.5 };
 const KEY = 'gym-logger-settings';
 
 function load(): Settings {

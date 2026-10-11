@@ -5,6 +5,11 @@ export function fmtWeight(w: number | null | undefined): string {
   return Number.isInteger(w) ? String(w) : w.toFixed(2).replace(/0+$/, '').replace('.', ',');
 }
 
+/** Rest time as m:ss. */
+export function fmtRest(s: number): string {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 export function fmtSet(s: Pick<WorkoutSet, 'weight' | 'reps'>): string {
   return `${fmtWeight(s.weight)} kg × ${s.reps ?? '–'}`;
 }

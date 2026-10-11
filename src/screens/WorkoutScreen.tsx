@@ -1,20 +1,30 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import {
-  addExerciseToWorkout,
+  addExercisesToWorkout,
   db,
+  deleteSet,
   deleteWorkout,
+  duplicateSet,
   finishWorkout,
   previousSets,
   removeExerciseFromWorkout,
+  restFor,
+  type Exercise,
   type Workout,
   type WorkoutSet,
 } from '../db';
+import { ActionSheet, type Action } from '../components/ActionSheet';
+import { ExerciseInfo } from '../components/ExerciseInfo';
 import { ExercisePicker } from '../components/ExercisePicker';
+import { NoteBlock, NoteSheet } from '../components/NoteSheet';
+import { ProgressSheet } from '../components/ProgressSheet';
 import { RestBar } from '../components/RestBar';
-import { fmtDuration, fmtSet, fmtWeight, parseNum } from '../format';
+import { RestSheet } from '../components/RestSheet';
+import { Thumb } from '../components/Thumb';
+import { fmtDuration, fmtRest, fmtSet, fmtWeight, parseNum } from '../format';
 import { startRest, stopRest } from '../restTimer';
-import { useSettings } from '../settings';
+import { showToast } from '../toast';
 import { useNow } from '../useNow';
 
 export interface Pr {
@@ -78,9 +88,7 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
       </header>
 
       <main className="content">
-        {workout.exerciseIds.length === 0 && (
-          <p className="empty">Voeg je eerste oefening toe om te beginnen.</p>
-        )}
+        {workout.exerciseIds.length === 0 && <p className="empty">Voeg je eerste oefening toe om te beginnen.</p>}
         {workout.exerciseIds.map((exId) => (
           <ExerciseCard
             key={exId}
@@ -103,9 +111,9 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
         <ExercisePicker
           exclude={workout.exerciseIds}
           onClose={() => setPicking(false)}
-          onPick={async (ex) => {
+          onConfirm={async (list) => {
             setPicking(false);
-            await addExerciseToWorkout(workout, ex.id);
+            await addExercisesToWorkout(workout, list);
           }}
         />
       )}
@@ -113,26 +121,40 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   );
 }
 
+type Overlay = 'menu' | 'info' | 'note' | 'rest' | 'progress' | null;
+
 function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exerciseId: number; sets: WorkoutSet[] }) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
   const prev = useLiveQuery(() => previousSets(exerciseId, workout.id), [exerciseId, workout.id]) ?? [];
-  const settings = useSettings();
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [setMenu, setSetMenu] = useState<WorkoutSet | null>(null);
+  const rest = restFor(workout, exercise);
+
+  // Work sets are numbered 1, 2, 3; warm-ups show "W" and don't count.
+  const labels: string[] = [];
+  const workIndex: number[] = [];
+  let n = 0;
+  for (const s of sets) {
+    if (s.warmup) {
+      labels.push('W');
+      workIndex.push(-1);
+    } else {
+      labels.push(String(++n));
+      workIndex.push(n - 1);
+    }
+  }
 
   async function addSet() {
-    const last = sets[sets.length - 1] ?? prev[sets.length];
+    const last = sets[sets.length - 1];
+    const p = prev[n];
     await db.sets.add({
       workoutId: workout.id,
       exerciseId,
-      order: (sets[sets.length - 1]?.order ?? -1) + 1,
-      weight: last?.weight ?? null,
-      reps: last?.reps ?? null,
+      order: (last?.order ?? -1) + 1,
+      weight: last && !last.warmup ? last.weight : (p?.weight ?? last?.weight ?? null),
+      reps: last && !last.warmup ? last.reps : (p?.reps ?? last?.reps ?? null),
       done: false,
     } as WorkoutSet);
-  }
-
-  async function removeLastSet() {
-    const last = sets[sets.length - 1];
-    if (last) await db.sets.delete(last.id);
   }
 
   async function toggle(set: WorkoutSet, index: number) {
@@ -141,31 +163,46 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
       return;
     }
     // Empty fields fall back to what you did last time (shown as placeholder).
-    const p = prev[index];
+    const p = workIndex[index] >= 0 ? prev[workIndex[index]] : undefined;
     const weight = set.weight ?? p?.weight ?? null;
     const reps = set.reps ?? p?.reps ?? null;
     if (reps == null) return;
     await db.sets.update(set.id, { weight, reps, done: true, doneAt: Date.now() });
-    // Carry the weight down to the following sets you haven't filled in yet.
-    const later = sets.slice(index + 1).filter((s) => !s.done && s.weight == null);
-    await Promise.all(later.map((s) => db.sets.update(s.id, { weight })));
-    startRest(settings.restSeconds);
+    if (!set.warmup) {
+      // Carry the weight down to the following work sets you haven't filled in yet.
+      const later = sets.slice(index + 1).filter((s) => !s.done && !s.warmup && s.weight == null);
+      await Promise.all(later.map((s) => db.sets.update(s.id, { weight })));
+    }
+    startRest(set.warmup ? Math.min(60, rest) : rest);
   }
 
-  async function remove() {
+  async function removeExercise() {
     if (confirm(`${exercise?.name ?? 'Oefening'} uit deze workout verwijderen?`)) {
       await removeExerciseFromWorkout(workout, exerciseId);
     }
   }
 
+  const menu: Action[] = [
+    { label: 'Uitvoering bekijken', onClick: () => setOverlay('info') },
+    { label: exercise?.note ? 'Notitie bewerken' : 'Notitie toevoegen', onClick: () => setOverlay('note') },
+    { label: `Rusttijd: ${fmtRest(rest)}`, onClick: () => setOverlay('rest') },
+    { label: 'Voortgang bekijken', onClick: () => setOverlay('progress') },
+    { label: 'Oefening verwijderen', onClick: removeExercise, danger: true },
+  ];
+
   return (
-    <section className="card">
+    <section className="card exercise-card">
       <div className="card-header">
-        <h3>{exercise?.name ?? '…'}</h3>
-        <button className="icon-btn" onClick={remove} aria-label="Oefening verwijderen">
-          ✕
+        <Thumb exercise={exercise} onClick={() => setOverlay('info')} />
+        <div className="grow">
+          <h3>{exercise?.name ?? '…'}</h3>
+          <span className="small muted">Rust {fmtRest(rest)}</span>
+        </div>
+        <button className="icon-btn" onClick={() => setOverlay('menu')} aria-label="Menu van oefening">
+          ⋯
         </button>
       </div>
+      <NoteBlock note={exercise?.note} />
       <div className="set-grid set-head">
         <span>Set</span>
         <span>Vorige</span>
@@ -174,30 +211,71 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
         <span>✓</span>
       </div>
       {sets.map((s, i) => (
-        <SetRow key={s.id} set={s} index={i} prev={prev[i]} onToggle={() => toggle(s, i)} />
+        <SetRow
+          key={s.id}
+          set={s}
+          label={labels[i]}
+          prev={workIndex[i] >= 0 ? prev[workIndex[i]] : undefined}
+          onToggle={() => toggle(s, i)}
+          onMenu={() => setSetMenu(s)}
+        />
       ))}
-      <div className="row-buttons">
-        <button className="btn ghost" onClick={removeLastSet} disabled={sets.length === 0}>
-          − Set
-        </button>
-        <button className="btn ghost" onClick={addSet}>
-          + Set
-        </button>
-      </div>
+      <button className="btn ghost block" onClick={addSet}>
+        + Set
+      </button>
+
+      {overlay === 'menu' && <ActionSheet title={exercise?.name} actions={menu} onClose={() => setOverlay(null)} />}
+      {overlay === 'info' && <ExerciseInfo exerciseId={exerciseId} onClose={() => setOverlay(null)} primary={{ label: 'Terug naar je workout', onClick: () => setOverlay(null) }} />}
+      {overlay === 'note' && exercise && <NoteSheet exercise={exercise} onClose={() => setOverlay(null)} />}
+      {overlay === 'progress' && <ProgressSheet exerciseId={exerciseId} onClose={() => setOverlay(null)} />}
+      {overlay === 'rest' && (
+        <RestSheet
+          value={rest}
+          onClose={() => setOverlay(null)}
+          onPick={(s) => db.workouts.update(workout.id, { rest: { ...workout.rest, [exerciseId]: s } })}
+        />
+      )}
+      {setMenu && (
+        <ActionSheet
+          title={`Set ${labels[sets.findIndex((s) => s.id === setMenu.id)] ?? ''}`}
+          onClose={() => setSetMenu(null)}
+          actions={setActions(setMenu, exercise)}
+        />
+      )}
     </section>
   );
 }
 
+function setActions(set: WorkoutSet, exercise?: Exercise): Action[] {
+  return [
+    { label: 'Set dupliceren', onClick: () => duplicateSet(set) },
+    {
+      label: set.warmup ? 'Markeren als werkset' : 'Markeren als warming-up',
+      onClick: () => db.sets.update(set.id, { warmup: !set.warmup }),
+    },
+    {
+      label: 'Set verwijderen',
+      danger: true,
+      onClick: async () => {
+        const restore = await deleteSet(set);
+        showToast(`Set verwijderd${exercise ? ` (${exercise.name})` : ''}`, restore);
+      },
+    },
+  ];
+}
+
 function SetRow({
   set,
-  index,
+  label,
   prev,
   onToggle,
+  onMenu,
 }: {
   set: WorkoutSet;
-  index: number;
+  label: string;
   prev?: WorkoutSet;
   onToggle: () => void;
+  onMenu: () => void;
 }) {
   const [weight, setWeight] = useNumberField(set.weight);
   const [reps, setReps] = useNumberField(set.reps);
@@ -207,8 +285,10 @@ function SetRow({
   }
 
   return (
-    <div className={`set-grid set-row ${set.done ? 'done' : ''}`}>
-      <span className="set-num">{index + 1}</span>
+    <div className={`set-grid set-row ${set.done ? 'done' : ''} ${set.warmup ? 'warmup' : ''}`}>
+      <button className="set-num" onClick={onMenu} aria-label={`Set ${label}, menu`}>
+        {label}
+      </button>
       <button className="prev" onClick={fillFromPrev} disabled={!prev}>
         {prev ? fmtSet(prev) : '–'}
       </button>
@@ -252,12 +332,12 @@ function useNumberField(value: number | null): [string, (v: string) => void] {
 async function findPrs(workoutId: number, done: WorkoutSet[]): Promise<Pr[]> {
   const prs: Pr[] = [];
   const byExercise = new Map<number, WorkoutSet[]>();
-  for (const s of done) (byExercise.get(s.exerciseId) ?? byExercise.set(s.exerciseId, []).get(s.exerciseId)!).push(s);
+  for (const s of done.filter((s) => !s.warmup)) (byExercise.get(s.exerciseId) ?? byExercise.set(s.exerciseId, []).get(s.exerciseId)!).push(s);
   for (const [exId, list] of byExercise) {
     const history = await db.sets
       .where('exerciseId')
       .equals(exId)
-      .filter((s) => s.done && s.workoutId !== workoutId)
+      .filter((s) => s.done && !s.warmup && s.workoutId !== workoutId)
       .toArray();
     if (history.length === 0) continue; // first time doing it isn't a PR
     const bestBefore = Math.max(...history.map((s) => s.weight ?? 0));

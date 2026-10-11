@@ -46,12 +46,12 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           </button>
         )}
 
-        <h2 className="section-title">Mijn schema's</h2>
+        <h2 className="section-title">Mijn programma's</h2>
         {templates?.length === 0 && (
           <div className="card empty-card">
-            <p>Maak een schema om met één tik je vaste training te starten.</p>
+            <p>Maak een programma om met één tik je vaste training te starten.</p>
             <button className="btn secondary" onClick={onNewTemplate}>
-              + Schema maken
+              + Programma maken
             </button>
           </div>
         )}

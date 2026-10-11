@@ -9,7 +9,7 @@ export function TemplatesScreen({ onEdit }: { onEdit: (id?: number) => void }) {
   return (
     <div className="screen">
       <header className="page-header">
-        <h1>Schema's</h1>
+        <h1>Programma's</h1>
         <button className="link strong" onClick={() => onEdit()}>
           + Nieuw
         </button>
@@ -17,8 +17,8 @@ export function TemplatesScreen({ onEdit }: { onEdit: (id?: number) => void }) {
       <main className="content">
         {templates?.length === 0 && (
           <p className="empty">
-            Nog geen schema's. Een schema is een vaste training, bijvoorbeeld “Push” of “Benen”, met oefeningen en het
-            aantal sets.
+            Nog geen programma's. Een programma is een vaste training, bijvoorbeeld “Push” of “Benen”, met oefeningen,
+            sets en rusttijden.
           </p>
         )}
         {templates?.map((t) => (

@@ -1,13 +1,18 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { SEED_EXERCISES } from './seed';
+import { LEGACY_MUSCLES, LEGACY_NAMES, LIBRARY, type Equipment } from './library/exercises';
+import { defaultsFor } from './library/defaults';
 
-export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight' | 'other';
+export type { Equipment };
 
 export interface Exercise {
   id: number;
+  slug?: string; // set for library exercises
   name: string;
+  aliases: string[];
   muscle: string;
   equipment: Equipment;
+  tip?: string;
+  note?: string; // personal note, e.g. "rek op stand 12"
   custom?: boolean;
 }
 
@@ -15,6 +20,7 @@ export interface TemplateItem {
   exerciseId: number;
   sets: number;
   reps: string; // free text, e.g. "8" or "8-12"
+  restSeconds?: number;
 }
 
 export interface Template {
@@ -31,7 +37,15 @@ export interface Workout {
   startedAt: number;
   endedAt?: number; // undefined while the workout is in progress
   exerciseIds: number[]; // display order within the workout
+  rest?: Record<number, number>; // rest seconds per exercise
   note?: string;
+}
+
+export type PrType = 'weight' | 'e1rm' | 'reps';
+
+export interface PrInfo {
+  type: PrType;
+  prev: number; // previous record value (kg, estimated kg, or reps)
 }
 
 export interface WorkoutSet {
@@ -43,6 +57,11 @@ export interface WorkoutSet {
   reps: number | null;
   done: boolean;
   doneAt?: number;
+  warmup?: boolean;
+  failure?: boolean;
+  rir?: number;
+  rpe?: number;
+  pr?: PrInfo;
 }
 
 export const db = new Dexie('gym-logger') as Dexie & {
@@ -59,13 +78,60 @@ db.version(1).stores({
   sets: '++id, workoutId, exerciseId, [workoutId+exerciseId]',
 });
 
-db.on('populate', (tx) => {
-  tx.table('exercises').bulkAdd(SEED_EXERCISES);
-});
+db.version(2)
+  .stores({ exercises: '++id, name, muscle, slug' })
+  .upgrade((tx) => tx.table('exercises').toCollection().modify(upgradeExercise));
 
-/** Sets of the most recent finished workout that contained this exercise. */
+/** Links an exercise from the first app version to the library, keeping its id (and thus its history). */
+function upgradeExercise(ex: Exercise) {
+  const slug = LEGACY_NAMES[ex.name];
+  if (slug) {
+    ex.slug = slug;
+  } else if (!ex.slug) {
+    ex.custom = true;
+    ex.muscle = LEGACY_MUSCLES[ex.muscle] ?? ex.muscle;
+  }
+  ex.aliases ??= [];
+}
+
+/** Adds missing library exercises and refreshes names, aliases and tips of existing ones. */
+export async function syncLibrary() {
+  await db.transaction('rw', db.exercises, async () => {
+    const rows = await db.exercises.toArray();
+    const bySlug = new Map(rows.filter((r) => r.slug).map((r) => [r.slug!, r]));
+    for (const lib of LIBRARY) {
+      const data = {
+        slug: lib.slug,
+        name: lib.name,
+        aliases: lib.aliases,
+        muscle: lib.muscle,
+        equipment: lib.equipment,
+        tip: lib.tip,
+      };
+      const row = bySlug.get(lib.slug);
+      if (!row) await db.exercises.add(data as Exercise);
+      else if (JSON.stringify({ ...data }) !== JSON.stringify(pick(row, Object.keys(data))))
+        await db.exercises.update(row.id, data);
+    }
+  });
+}
+
+function pick(o: object, keys: string[]) {
+  return Object.fromEntries(keys.map((k) => [k, (o as Record<string, unknown>)[k]]));
+}
+
+export function restFor(workout: Workout | undefined, ex: Exercise | undefined): number {
+  if (!ex) return 90;
+  return workout?.rest?.[ex.id] ?? defaultsFor(ex).rest;
+}
+
+/** Work sets of the most recent finished workout that contained this exercise. */
 export async function previousSets(exerciseId: number, beforeWorkoutId?: number): Promise<WorkoutSet[]> {
-  const all = await db.sets.where('exerciseId').equals(exerciseId).filter((s) => s.done).toArray();
+  const all = await db.sets
+    .where('exerciseId')
+    .equals(exerciseId)
+    .filter((s) => s.done && !s.warmup)
+    .toArray();
   const byWorkout = new Map<number, WorkoutSet[]>();
   for (const s of all) {
     if (s.workoutId === beforeWorkoutId) continue;
@@ -80,20 +146,22 @@ export async function previousSets(exerciseId: number, beforeWorkoutId?: number)
   return byWorkout.get(latest.id)!.sort((a, b) => a.order - b.order);
 }
 
-export async function startWorkout(template?: Template): Promise<number> {
-  return db.transaction('rw', db.workouts, db.sets, async () => {
-    const exerciseIds = template ? template.items.map((i) => i.exerciseId) : [];
+export async function startWorkout(template?: Template, extraExercises: Exercise[] = []): Promise<number> {
+  return db.transaction('rw', db.workouts, db.sets, db.exercises, async () => {
+    const items = template?.items ?? [];
+    const rest: Record<number, number> = {};
+    for (const i of items) if (i.restSeconds) rest[i.exerciseId] = i.restSeconds;
     const workoutId = await db.workouts.add({
       name: template?.name ?? 'Losse workout',
       templateId: template?.id,
       startedAt: Date.now(),
-      exerciseIds,
+      exerciseIds: items.map((i) => i.exerciseId),
+      rest,
     } as Workout);
-    if (template) {
-      for (const item of template.items) {
-        await addPlannedSets(workoutId, item.exerciseId, item.sets, parseInt(item.reps, 10) || null);
-      }
+    for (const item of items) {
+      await addPlannedSets(workoutId, item.exerciseId, item.sets, parseInt(item.reps, 10) || null);
     }
+    if (extraExercises.length) await addExercisesToWorkout((await db.workouts.get(workoutId))!, extraExercises);
     return workoutId;
   });
 }
@@ -101,13 +169,15 @@ export async function startWorkout(template?: Template): Promise<number> {
 /** Adds sets for an exercise, prefilled with what you did last time. */
 export async function addPlannedSets(workoutId: number, exerciseId: number, count: number, targetReps: number | null) {
   const prev = await previousSets(exerciseId, workoutId);
-  const existing = await db.sets.where({ workoutId, exerciseId }).count();
+  const existing = await db.sets.where({ workoutId, exerciseId }).toArray();
+  const work = existing.filter((s) => !s.warmup).length;
+  const maxOrder = Math.max(-1, ...existing.map((s) => s.order));
   const rows = Array.from({ length: count }, (_, i) => {
-    const p = prev[existing + i] ?? prev[prev.length - 1];
+    const p = prev[work + i] ?? prev[prev.length - 1];
     return {
       workoutId,
       exerciseId,
-      order: existing + i,
+      order: maxOrder + 1 + i,
       weight: p?.weight ?? null,
       reps: p?.reps ?? targetReps,
       done: false,
@@ -116,10 +186,16 @@ export async function addPlannedSets(workoutId: number, exerciseId: number, coun
   await db.sets.bulkAdd(rows);
 }
 
-export async function addExerciseToWorkout(workout: Workout, exerciseId: number) {
-  if (workout.exerciseIds.includes(exerciseId)) return;
-  await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, exerciseId] });
-  await addPlannedSets(workout.id, exerciseId, 3, null);
+export async function addExercisesToWorkout(workout: Workout, exercises: Exercise[]) {
+  const fresh = exercises.filter((ex) => !workout.exerciseIds.includes(ex.id));
+  if (!fresh.length) return;
+  const rest = { ...workout.rest };
+  for (const ex of fresh) rest[ex.id] = defaultsFor(ex).rest;
+  await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, ...fresh.map((x) => x.id)], rest });
+  for (const ex of fresh) {
+    const d = defaultsFor(ex);
+    await addPlannedSets(workout.id, ex.id, d.sets, d.reps);
+  }
 }
 
 export async function removeExerciseFromWorkout(workout: Workout, exerciseId: number) {
@@ -127,6 +203,35 @@ export async function removeExerciseFromWorkout(workout: Workout, exerciseId: nu
     await db.workouts.update(workout.id, { exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId) });
     await db.sets.where({ workoutId: workout.id, exerciseId }).delete();
   });
+}
+
+/** Inserts a copy of the set directly below it. */
+export async function duplicateSet(set: WorkoutSet) {
+  await db.transaction('rw', db.sets, async () => {
+    await db.sets
+      .where({ workoutId: set.workoutId, exerciseId: set.exerciseId })
+      .filter((s) => s.order > set.order)
+      .modify((s) => {
+        s.order += 1;
+      });
+    await db.sets.add({
+      workoutId: set.workoutId,
+      exerciseId: set.exerciseId,
+      order: set.order + 1,
+      weight: set.weight,
+      reps: set.reps,
+      warmup: set.warmup,
+      done: false,
+    } as WorkoutSet);
+  });
+}
+
+/** Deletes a set and returns a function that restores it. */
+export async function deleteSet(set: WorkoutSet): Promise<() => Promise<void>> {
+  await db.sets.delete(set.id);
+  return async () => {
+    await db.sets.put(set);
+  };
 }
 
 /** Ends the workout; sets that were never ticked off are discarded. */
@@ -151,6 +256,19 @@ export async function deleteWorkout(workoutId: number) {
   });
 }
 
+export async function addToTemplate(templateId: number, exercises: Exercise[]) {
+  const t = await db.templates.get(templateId);
+  if (!t) return;
+  const have = new Set(t.items.map((i) => i.exerciseId));
+  const items = exercises
+    .filter((ex) => !have.has(ex.id))
+    .map((ex) => {
+      const d = defaultsFor(ex);
+      return { exerciseId: ex.id, sets: d.sets, reps: String(d.reps), restSeconds: d.rest };
+    });
+  await db.templates.update(templateId, { items: [...t.items, ...items] });
+}
+
 export async function exportData(): Promise<string> {
   const [exercises, templates, workouts, sets] = await Promise.all([
     db.exercises.toArray(),
@@ -158,12 +276,13 @@ export async function exportData(): Promise<string> {
     db.workouts.toArray(),
     db.sets.toArray(),
   ]);
-  return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), exercises, templates, workouts, sets });
+  return JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), exercises, templates, workouts, sets });
 }
 
 export async function importData(json: string) {
   const data = JSON.parse(json);
-  if (data.version !== 1) throw new Error('Onbekend bestandsformaat');
+  if (data.version !== 1 && data.version !== 2) throw new Error('Onbekend bestandsformaat');
+  if (data.version === 1) data.exercises.forEach(upgradeExercise);
   await db.transaction('rw', [db.exercises, db.templates, db.workouts, db.sets], async () => {
     await Promise.all([db.exercises.clear(), db.templates.clear(), db.workouts.clear(), db.sets.clear()]);
     await db.exercises.bulkAdd(data.exercises);
@@ -171,4 +290,5 @@ export async function importData(json: string) {
     await db.workouts.bulkAdd(data.workouts);
     await db.sets.bulkAdd(data.sets);
   });
+  await syncLibrary();
 }
