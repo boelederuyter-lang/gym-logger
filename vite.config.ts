@@ -12,6 +12,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'icon.svg'],
+      // De trainingsschema-generator (public/schema/) is een losse app: niet naar index.html omleiden.
+      workbox: { navigateFallbackDenylist: [/\/schema\//] },
       manifest: {
         name: 'Gym Logger',
         short_name: 'Gym',

@@ -23,12 +23,22 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 
 Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
+## Trainingsschema-generator
+
+Een losse webapp in `public/schema/`: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Vanilla HTML/CSS/JS zonder build-stap; alles wordt in localStorage bewaard.
+
+- Online: https://boelederuyter-lang.github.io/gym-logger/schema/
+- `js/exercises.js`: oefeningendatabase · `js/generator.js`: schema-logica · `js/app.js`: interface
+- Met de deelknop stuur je een link waarmee een vriend precies hetzelfde schema krijgt.
+- Netlify: sleep de map `public/schema` naar https://app.netlify.com/drop en je hebt een eigen link.
+- Lokaal bekijken: `npx serve public/schema` (niet via `file://`, ES-modules hebben een server nodig).
+
 ## Ontwikkelen
 
 ```bash
 npm install
 npm run dev      # lokale dev-server (galerij met alle animaties: /#figuren)
-npm test         # unit-tests (parser, PR's, warming-up, grafieken, migratie)
+npm test         # unit-tests (parser, PR's, warming-up, grafieken, migratie, schema-generator)
 npm run build    # productie-build in dist/
 npm run format   # Prettier
 ```
