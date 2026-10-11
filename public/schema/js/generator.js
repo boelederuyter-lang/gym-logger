@@ -1,9 +1,9 @@
 // Schema-logica. Puur en deterministisch: dezelfde invoer + seed geeft hetzelfde schema,
 // zodat een gedeelde link bij een vriend exact hetzelfde schema oplevert.
 
-import { OEFENINGEN, BESCHIKBAAR, APPARATUUR } from './exercises.js';
+import { OEFENINGEN, CARDIO, BESCHIKBAAR, APPARATUUR } from './exercises.js';
 
-export const DOELEN = { kracht: 'Kracht', spiermassa: 'Spiermassa', fitheid: 'Algemene fitheid' };
+export const DOELEN = { kracht: 'Kracht', spiermassa: 'Spiermassa', fitheid: 'Algemene fitheid', vetverlies: 'Vetverlies' };
 export const NIVEAUS = { beginner: 'Beginner', gevorderd: 'Gevorderd' };
 export const DAGEN = [2, 3, 4, 5];
 export const TIJDEN = [30, 45, 60, 75];
@@ -15,6 +15,8 @@ const REPS = {
   kracht: { compound: [4, 6], isolatie: [6, 8], sec: [20, 30] },
   spiermassa: { compound: [8, 12], isolatie: [8, 12], sec: [30, 45] },
   fitheid: { compound: [12, 15], isolatie: [12, 15], sec: [40, 60] },
+  // Vetverlies: zwaar genoeg blijven trainen om spiermassa te behouden.
+  vetverlies: { compound: [8, 12], isolatie: [12, 15], sec: [30, 45] },
 };
 
 /** Rust in seconden: kracht langer, fitheid korter. */
@@ -22,7 +24,12 @@ const RUST = {
   kracht: { compound: 180, isolatie: 90 },
   spiermassa: { compound: 90, isolatie: 60 },
   fitheid: { compound: 60, isolatie: 45 },
+  vetverlies: { compound: 75, isolatie: 45 },
 };
+
+/** Minuten cardio na de krachttraining bij vetverlies, per sessieduur. */
+const CARDIO_MINUTEN = { 30: 10, 45: 12, 60: 15, 75: 20 };
+const INTERVAL = { werk: 30, rust: 60, inUit: 5 }; // 3 min inlopen + 2 min uitlopen
 
 // Een trainingsdag is een rij slots in volgorde van belangrijkheid. Elk slot noemt
 // bewegingspatronen; het eerste patroon waarvoor een passende oefening bestaat wint.
@@ -163,9 +170,9 @@ function maakOefening(o, invoer, sets) {
   };
 }
 
-function bouwDag(type, invoer, pool, gebruik, random) {
+function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
   const beginner = invoer.niveau === 'beginner';
-  const budget = invoer.tijd === 75 ? 80 : invoer.tijd;
+  const budget = (invoer.tijd === 75 ? 80 : invoer.tijd) - cardioMinuten;
   const basisAantal = Math.max(MIN_OEFENINGEN, { 30: 4, 45: 5, 60: 6, 75: 7 }[invoer.tijd] - (beginner ? 1 : 0));
   const maxAantal = beginner ? basisAantal : Math.min(8, basisAantal + 1);
   const setsStart = { compound: beginner ? 3 : 4, isolatie: beginner ? 2 : 3 };
@@ -244,6 +251,55 @@ function bouwDag(type, invoer, pool, gebruik, random) {
   return lijst;
 }
 
+/**
+ * Cardioblok na de krachttraining. Beginners doen rustige duurcardio; gevorderden doen
+ * op dag 1 en 3 intervallen (maximaal twee keer per week) en verder rustige cardio.
+ */
+function kiesCardio(invoer, index, gebruik, random) {
+  const soort = invoer.niveau === 'gevorderd' && (index === 0 || index === 2) ? 'interval' : 'rustig';
+  const ok = BESCHIKBAAR[invoer.apparatuur];
+  const kandidaten = CARDIO.filter(
+    (c) => ok.includes(c.apparatuur) && c.soorten.includes(soort) && (!c.niveau || c.niveau === invoer.niveau),
+  );
+  // In de gym liever een cardiomachine dan wandelen of traplopen.
+  const voorkeur = kandidaten.filter((c) => invoer.apparatuur !== 'gym' || c.apparatuur !== 'lichaamsgewicht');
+  const lijst = voorkeur.length ? voorkeur : kandidaten;
+  const minstGebruikt = Math.min(...lijst.map((c) => gebruik.get(c.id) ?? 0));
+  const opties = lijst.filter((c) => (gebruik.get(c.id) ?? 0) === minstGebruikt);
+  const c = opties[Math.floor(random() * opties.length)];
+  gebruik.set(c.id, (gebruik.get(c.id) ?? 0) + 1);
+
+  const minuten = CARDIO_MINUTEN[invoer.tijd];
+  const basis = { id: c.id, naam: c.naam, tip: c.tip, apparatuur: APPARATUUR[c.apparatuur], soort };
+  if (soort === 'rustig') return { ...basis, minuten };
+  const rondes = Math.floor(((minuten - INTERVAL.inUit) * 60) / (INTERVAL.werk + INTERVAL.rust));
+  return { ...basis, rondes, werk: INTERVAL.werk, rust: INTERVAL.rust, minuten: intervalMinuten(rondes, INTERVAL.werk, INTERVAL.rust) };
+}
+
+const intervalMinuten = (rondes, werk, rust) => Math.round(INTERVAL.inUit + (rondes * (werk + rust)) / 60);
+
+/** Cardio in een bepaalde week, met dezelfde opbouw als de krachtoefeningen. */
+function cardioWeek(c, week) {
+  if (!c) return null;
+  if (c.soort === 'rustig') {
+    const minuten = { 1: c.minuten, 2: c.minuten + 2, 3: c.minuten, 4: Math.round(c.minuten * 0.6) }[week];
+    const uitleg = {
+      1: `${minuten} min in een rustig tempo: je kunt nog praten.`,
+      2: `${minuten} min in hetzelfde tempo als week 1.`,
+      3: `${minuten} min, iets hoger tempo, weerstand of helling dan week 1.`,
+      4: `${minuten} min ontspannen, zonder te forceren.`,
+    }[week];
+    return { ...c, minuten, uitleg, advies: { 1: null, 2: '+2 min', 3: 'Intensiever', 4: 'Deload' }[week] };
+  }
+  let { rondes, werk, rust } = c;
+  if (week === 2) rondes += 1;
+  if (week === 3) [werk, rust] = [40, 50];
+  if (week === 4) rondes = Math.max(2, Math.round(rondes * 0.6));
+  const uitleg = `3 min inlopen · ${rondes} × ${werk} sec hard / ${rust} sec rustig · 2 min uitlopen`;
+  const advies = { 1: null, 2: '+1 ronde', 3: '40/50 sec', 4: 'Deload' }[week];
+  return { ...c, rondes, werk, rust, minuten: intervalMinuten(rondes, werk, rust), uitleg, advies };
+}
+
 const sleutel = (oefeningen) => oefeningen.map((o) => o.id).sort().join('|');
 
 /** Genereert een volledig schema. */
@@ -256,15 +312,17 @@ export function genereerSchema(rawInvoer, seed = nieuweSeed()) {
   const gebruik = new Map();
   const dagen = [];
 
-  for (const type of split.dagen) {
-    let oefeningen = bouwDag(type, invoer, pool, gebruik, random);
+  split.dagen.forEach((type, index) => {
+    const cardio = invoer.doel === 'vetverlies' ? kiesCardio(invoer, index, gebruik, random) : null;
+    const cardioMinuten = cardio?.minuten ?? 0;
+    let oefeningen = bouwDag(type, invoer, pool, gebruik, random, cardioMinuten);
     // Nooit twee identieke trainingen: probeer opnieuw met andere keuzes.
     for (let poging = 0; poging < 25 && dagen.some((d) => sleutel(d.oefeningen) === sleutel(oefeningen)); poging++) {
-      oefeningen = bouwDag(type, invoer, pool, gebruik, random);
+      oefeningen = bouwDag(type, invoer, pool, gebruik, random, cardioMinuten);
     }
     for (const o of oefeningen) gebruik.set(o.id, (gebruik.get(o.id) ?? 0) + 1);
-    dagen.push({ type, naam: DAGTYPES[type].naam, focus: DAGTYPES[type].focus, oefeningen });
-  }
+    dagen.push({ type, naam: DAGTYPES[type].naam, focus: DAGTYPES[type].focus, oefeningen, cardio });
+  });
 
   return { versie: 1, invoer, seed, split: split.naam, dagen };
 }
@@ -295,7 +353,8 @@ export function weekSchema(schema, week) {
       }
       return { ...o, sets, reps, advies };
     });
-    return { ...dag, oefeningen, minuten: schatMinuten(oefeningen) };
+    const cardio = cardioWeek(dag.cardio, week);
+    return { ...dag, oefeningen, cardio, minuten: schatMinuten(oefeningen) + (cardio?.minuten ?? 0) };
   });
 }
 

@@ -25,7 +25,7 @@ Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
 ## Trainingsschema-generator
 
-Een losse webapp in `public/schema/`: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Vanilla HTML/CSS/JS zonder build-stap; alles wordt in localStorage bewaard.
+Een losse webapp in `public/schema/`: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij het doel vetverlies komt er na elke training een cardioblok bij (rustig of intervallen). Vanilla HTML/CSS/JS zonder build-stap; alles wordt in localStorage bewaard.
 
 - Online: https://boelederuyter-lang.github.io/gym-logger/schema/
 - `js/exercises.js`: oefeningendatabase · `js/generator.js`: schema-logica · `js/app.js`: interface

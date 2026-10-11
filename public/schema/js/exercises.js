@@ -325,3 +325,26 @@ export const OEFENINGEN = [
   { id: 'farmers-walk', naam: "Farmer's walk", spiergroep: 'Core/grip', patroon: 'core', apparatuur: 'dumbbells', type: 'isolatie', deel: 'core', eenheid: 'sec',
     tip: 'Zware dumbbells in beide handen. Loop rechtop met kleine passen, schouders laag.' },
 ];
+
+// Cardio voor het doel vetverlies. `soorten` zegt of een activiteit geschikt is voor
+// rustige duurcardio ('rustig') en/of intervallen ('interval').
+export const CARDIO = [
+  { id: 'loopband-helling', naam: 'Loopband op helling', apparatuur: 'machine', soorten: ['rustig'],
+    tip: 'Stevig wandelen op 8–12% helling, 5–6 km/u. Niet vasthouden aan de leuningen.' },
+  { id: 'crosstrainer', naam: 'Crosstrainer', apparatuur: 'machine', soorten: ['rustig', 'interval'],
+    tip: 'Rechtop staan, niet op de handgrepen leunen, en actief duwen en trekken met je armen.' },
+  { id: 'hometrainer', naam: 'Hometrainer', apparatuur: 'machine', soorten: ['rustig', 'interval'],
+    tip: 'Zadel op heuphoogte: onderin is je knie bijna gestrekt. Hard = weerstand omhoog, niet alleen sneller trappen.' },
+  { id: 'roeitoestel', naam: 'Roeitoestel', apparatuur: 'machine', soorten: ['rustig', 'interval'],
+    tip: 'Eerst benen, dan achterover leunen, dan armen. Terug in omgekeerde volgorde. Kracht komt uit je benen.' },
+  { id: 'wandelen', naam: 'Stevig wandelen', apparatuur: 'lichaamsgewicht', soorten: ['rustig'],
+    tip: 'Tempo waarbij je nog kunt praten maar niet kunt zingen. Zwaai je armen actief mee. Binnen kan ook op de plek.' },
+  { id: 'traplopen', naam: 'Traplopen', apparatuur: 'lichaamsgewicht', soorten: ['rustig', 'interval'],
+    tip: 'Elke tree, hele voet op de trede. Omlaag rustig lopen en houd de leuning vast als dat nodig is.' },
+  { id: 'low-impact', naam: 'Low-impact cardio', apparatuur: 'lichaamsgewicht', soorten: ['rustig'],
+    tip: 'Wissel elke minuut af: marcheren met hoge knieën, step jacks (zijwaarts tikken), squat met armen omhoog, schaduwboksen.' },
+  { id: 'schaduwboksen', naam: 'Schaduwboksen', apparatuur: 'lichaamsgewicht', soorten: ['rustig', 'interval'],
+    tip: 'Licht op je voorvoeten, handen voor je gezicht. Stoot vanuit je heup en blijf bewegen tussen de combinaties.' },
+  { id: 'hiit-circuit', naam: 'HIIT-circuit', apparatuur: 'lichaamsgewicht', soorten: ['interval'], niveau: 'gevorderd',
+    tip: 'Wissel per interval: jumping jacks, high knees, mountain climbers, burpees. Zacht landen en ga voor tempo met goede techniek.' },
+];

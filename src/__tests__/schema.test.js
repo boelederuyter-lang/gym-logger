@@ -1,7 +1,7 @@
 // Tests voor de trainingsschema-generator (public/schema). Plain JS, want de generator
 // is vanilla JS zonder build-stap.
 import { describe, expect, it } from 'vitest';
-import { OEFENINGEN, BESCHIKBAAR, APPARATUUR } from '../../public/schema/js/exercises.js';
+import { OEFENINGEN, CARDIO, BESCHIKBAAR, APPARATUUR } from '../../public/schema/js/exercises.js';
 import {
   APPARATUUR_KEUZES,
   DAGEN,
@@ -44,7 +44,7 @@ describe('oefeningendatabase', () => {
 
 describe('generator: alle combinaties', () => {
   it(`dekt ${combinaties.length} combinaties`, () => {
-    expect(combinaties.length).toBe(3 * 2 * 4 * 4 * 3);
+    expect(combinaties.length).toBe(4 * 2 * 4 * 4 * 3);
   });
 
   for (const invoer of combinaties) {
@@ -85,7 +85,20 @@ describe('generator: alle combinaties', () => {
           // Past binnen de tijd, tenzij het minimum al bereikt is.
           const budget = invoer.tijd === 75 ? 80 : invoer.tijd;
           const opMinimum = ids.length === MIN_OEFENINGEN && dag.oefeningen.every((o) => o.sets === 2);
-          if (!opMinimum) expect(schatMinuten(dag.oefeningen), ctx).toBeLessThanOrEqual(budget);
+          const cardioMinuten = dag.cardio?.minuten ?? 0;
+          if (!opMinimum) expect(schatMinuten(dag.oefeningen) + cardioMinuten, ctx).toBeLessThanOrEqual(budget);
+
+          // Cardio alleen bij vetverlies, passend bij apparatuur en niveau.
+          if (invoer.doel === 'vetverlies') {
+            const c = CARDIO.find((x) => x.id === dag.cardio?.id);
+            expect(c, ctx).toBeTruthy();
+            expect(BESCHIKBAAR[invoer.apparatuur], ctx).toContain(c.apparatuur);
+            expect(c.soorten, ctx).toContain(dag.cardio.soort);
+            if (invoer.niveau === 'beginner') expect(dag.cardio.soort, ctx).toBe('rustig');
+            expect(dag.cardio.minuten, ctx).toBeGreaterThanOrEqual(8);
+          } else {
+            expect(dag.cardio, ctx).toBeNull();
+          }
 
           sleutels.add(sleutel(dag));
         }
@@ -180,5 +193,37 @@ describe('progressie over 4 weken', () => {
     expect(verhouding).toBeGreaterThan(0.45);
     expect(verhouding).toBeLessThan(0.75);
     for (const dag of w4) for (const o of dag.oefeningen) expect(o.sets).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('cardio bij vetverlies', () => {
+  const invoer = { doel: 'vetverlies', niveau: 'gevorderd', dagen: 5, tijd: 60, apparatuur: 'gym' };
+  const schema = genereerSchema(invoer, 11);
+  const weken = [1, 2, 3, 4].map((w) => weekSchema(schema, w));
+
+  it('maximaal twee intervaltrainingen per week voor gevorderden', () => {
+    expect(schema.dagen.filter((d) => d.cardio.soort === 'interval').length).toBe(2);
+  });
+
+  it('kiest in de gym een cardiomachine en varieert tussen dagen', () => {
+    expect(schema.dagen.every((d) => CARDIO.find((c) => c.id === d.cardio.id).apparatuur === 'machine')).toBe(true);
+    expect(new Set(schema.dagen.map((d) => d.cardio.id)).size).toBeGreaterThan(2);
+  });
+
+  it('volgt dezelfde opbouw over het blok', () => {
+    schema.dagen.forEach((dag, d) => {
+      const [w1, w2, w3, w4] = weken.map((w) => w[d].cardio);
+      if (dag.cardio.soort === 'rustig') {
+        expect(w2.minuten).toBe(w1.minuten + 2);
+        expect(w3.minuten).toBe(w1.minuten);
+      } else {
+        expect(w2.rondes).toBe(w1.rondes + 1);
+        expect(w3.rondes).toBe(w1.rondes);
+        expect(w3.werk).toBeGreaterThan(w1.werk);
+      }
+      expect(w4.minuten).toBeLessThan(w1.minuten);
+      expect(w1.uitleg).toBeTruthy();
+      expect(weken[0][d].minuten).toBe(schatMinuten(weken[0][d].oefeningen) + w1.minuten);
+    });
   });
 });

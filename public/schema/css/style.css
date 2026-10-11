@@ -13,6 +13,9 @@
   --accent-soft: rgba(79, 63, 240, 0.1);
   --done: #14965a;
   --done-soft: rgba(20, 150, 90, 0.12);
+  --cardio: #e8553a;
+  --cardio-text: #c43d24;
+  --cardio-soft: rgba(232, 85, 58, 0.09);
   --shadow: 0 1px 2px rgba(18, 19, 26, 0.04), 0 6px 24px rgba(18, 19, 26, 0.06);
   --radius: 18px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -33,6 +36,9 @@
     --accent-soft: rgba(143, 131, 255, 0.16);
     --done: #3ddc8f;
     --done-soft: rgba(61, 220, 143, 0.14);
+  --cardio: #e8553a;
+  --cardio-text: #ff8a70;
+  --cardio-soft: rgba(255, 112, 82, 0.12);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
@@ -51,6 +57,9 @@
   --accent-soft: rgba(143, 131, 255, 0.16);
   --done: #3ddc8f;
   --done-soft: rgba(61, 220, 143, 0.14);
+  --cardio: #e8553a;
+  --cardio-text: #ff8a70;
+  --cardio-soft: rgba(255, 112, 82, 0.12);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
@@ -618,6 +627,22 @@ legend {
 .tags span {
   font-size: 12px;
   color: var(--muted);
+}
+
+.cardio {
+  margin: 0 8px 8px;
+  border-radius: 14px;
+  background: var(--cardio-soft);
+}
+
+.cardio .nr {
+  background: var(--cardio);
+  color: #fff;
+}
+
+.cardio .badge {
+  background: var(--surface);
+  color: var(--cardio-text);
 }
 
 /* ---------- Acties onderaan ---------- */

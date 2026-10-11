@@ -112,7 +112,8 @@ function renderFormulier() {
           ['kracht', DOELEN.kracht, '4–6 reps'],
           ['spiermassa', DOELEN.spiermassa, '8–12 reps'],
           ['fitheid', 'Fitheid', '12–15 reps'],
-        ], i.doel, 3)}
+          ['vetverlies', DOELEN.vetverlies, 'Kracht + cardio'],
+        ], i.doel, 2)}
       </fieldset>
       <fieldset>
         <legend>Wat is je niveau?</legend>
@@ -190,6 +191,29 @@ function renderOefening(o, nr) {
     </li>`;
 }
 
+function renderCardio(c) {
+  const advies = c.advies ? `<span class="badge${c.advies === 'Deload' ? ' badge-stil' : ''}">${esc(c.advies)}</span>` : '';
+  return `
+    <details class="oefening cardio">
+      <summary>
+        <span class="nr" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" fill="currentColor"/></svg>
+        </span>
+        <span class="oef-main">
+          <span class="oef-naam">Cardio: ${esc(c.naam)}</span>
+          <span class="oef-meta"><strong>${c.minuten} min</strong><span class="dot">·</span>${c.soort === 'interval' ? 'intervallen' : 'rustig tempo'}</span>
+        </span>
+        ${advies}
+        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="tip">
+        <p><strong>${esc(c.uitleg)}</strong></p>
+        <p>${esc(c.tip)}</p>
+        <p class="tags"><span>Na de krachttraining</span><span>${esc(c.apparatuur)}</span></p>
+      </div>
+    </details>`;
+}
+
 function renderDag(dag, index) {
   const gedaan = !!staat.gedaan[`${staat.week}-${index}`];
   return `
@@ -198,7 +222,7 @@ function renderDag(dag, index) {
         <div>
           <p class="dag-nr">Dag ${index + 1} · ${esc(dag.focus)}</p>
           <h3>${esc(dag.naam)}</h3>
-          <p class="dag-info">± ${dag.minuten} min · ${dag.oefeningen.length} oefeningen</p>
+          <p class="dag-info">± ${dag.minuten} min · ${dag.oefeningen.length} oefeningen${dag.cardio ? ' + cardio' : ''}</p>
         </div>
         <button class="gedaan-knop" type="button" data-dag="${index}" aria-pressed="${gedaan}">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -206,6 +230,7 @@ function renderDag(dag, index) {
         </button>
       </header>
       <ol class="oefeningen">${dag.oefeningen.map((o, i) => renderOefening(o, i + 1)).join('')}</ol>
+      ${dag.cardio ? renderCardio(dag.cardio) : ''}
     </article>`;
 }
 
@@ -244,6 +269,7 @@ function renderSchema() {
 
     <section class="week-uitleg" role="tabpanel">
       <p>${info.uitleg}</p>
+      ${invoer.doel === 'vetverlies' ? '<p class="sub">Vetverlies: cardio doe je na de krachttraining. Op rustdagen helpt 30–45 min wandelen. Het meeste resultaat komt van een klein calorietekort en genoeg eiwit.</p>' : ''}
       ${invoer.apparatuur !== 'gym' ? '<p class="sub">Oefeningen met lichaamsgewicht te makkelijk? Kies een zwaardere variant of zak langzamer, zodat de laatste reps zwaar zijn.</p>' : ''}
       <p class="voortgang"><span style="--p:${(aantalGedaan / schema.dagen.length) * 100}%"></span>${aantalGedaan} van ${schema.dagen.length} trainingen gedaan</p>
     </section>
