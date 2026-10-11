@@ -1,6 +1,8 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { LEGACY_MUSCLES, LEGACY_NAMES, LIBRARY, type Equipment } from './library/exercises';
 import { defaultsFor } from './library/defaults';
+import { computePrs } from './prs';
+import type { PlannedSet } from './warmup';
 
 export type { Equipment };
 
@@ -232,6 +234,49 @@ export async function deleteSet(set: WorkoutSet): Promise<() => Promise<void>> {
   return async () => {
     await db.sets.put(set);
   };
+}
+
+/**
+ * Recomputes the PR flags of one exercise in a workout against earlier finished workouts.
+ * Returns the sets that just became a PR.
+ */
+export async function recomputePrs(workoutId: number, exerciseId: number): Promise<WorkoutSet[]> {
+  const others = await db.sets
+    .where('exerciseId')
+    .equals(exerciseId)
+    .filter((s) => s.done && !s.warmup && s.workoutId !== workoutId)
+    .toArray();
+  const workouts = await db.workouts.bulkGet([...new Set(others.map((s) => s.workoutId))]);
+  const finished = new Set(workouts.filter((w) => w?.endedAt).map((w) => w!.id));
+  const history = others.filter((s) => finished.has(s.workoutId));
+
+  const sets = (await db.sets.where({ workoutId, exerciseId }).toArray()).sort((a, b) => a.order - b.order);
+  const prs = computePrs(sets, history);
+  const fresh: WorkoutSet[] = [];
+  for (let i = 0; i < sets.length; i++) {
+    if (JSON.stringify(sets[i].pr) === JSON.stringify(prs[i])) continue;
+    await db.sets.update(sets[i].id, { pr: prs[i] });
+    if (prs[i] && !sets[i].pr) fresh.push({ ...sets[i], pr: prs[i] });
+  }
+  return fresh;
+}
+
+/** Inserts warm-up sets before the first work set of an exercise. */
+export async function addWarmupSets(workoutId: number, exerciseId: number, planned: PlannedSet[]) {
+  await db.transaction('rw', db.sets, async () => {
+    const all = (await db.sets.where({ workoutId, exerciseId }).toArray()).sort((a, b) => a.order - b.order);
+    const firstWork = all.find((s) => !s.warmup);
+    const at = firstWork?.order ?? (all.length ? all[all.length - 1].order + 1 : 0);
+    await db.sets
+      .where({ workoutId, exerciseId })
+      .filter((s) => s.order >= at)
+      .modify((s) => {
+        s.order += planned.length;
+      });
+    await db.sets.bulkAdd(
+      planned.map((p, i) => ({ workoutId, exerciseId, order: at + i, weight: p.weight, reps: p.reps, warmup: true, done: false }) as WorkoutSet),
+    );
+  });
 }
 
 /** Ends the workout; sets that were never ticked off are discarded. */

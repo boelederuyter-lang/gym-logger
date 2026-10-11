@@ -2,12 +2,21 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, deleteWorkout, type Workout } from '../db';
 import { Sheet } from '../components/Sheet';
 import { fmtDate, fmtDuration, fmtSet, volume } from '../format';
+import { describePr } from '../prs';
 
 export function HistoryScreen({ onOpen }: { onOpen: (id: number) => void }) {
   const data = useLiveQuery(async () => {
     const workouts = (await db.workouts.orderBy('startedAt').reverse().toArray()).filter((w) => w.endedAt);
     const sets = await db.sets.toArray();
     return workouts.map((w) => ({ w, sets: sets.filter((s) => s.workoutId === w.id) }));
+  }, []);
+
+  const recentPrs = useLiveQuery(async () => {
+    const prSets = await db.sets.filter((s) => !!s.pr && s.done).toArray();
+    const workouts = new Map((await db.workouts.bulkGet([...new Set(prSets.map((s) => s.workoutId))])).filter(Boolean).map((w) => [w!.id, w!]));
+    const finished = prSets.filter((s) => workouts.get(s.workoutId)?.endedAt).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)).slice(0, 5);
+    const exercises = await db.exercises.bulkGet(finished.map((s) => s.exerciseId));
+    return finished.map((s, i) => ({ s, name: exercises[i]?.name ?? '?', date: workouts.get(s.workoutId)!.startedAt }));
   }, []);
 
   const groups = new Map<string, NonNullable<typeof data>>();
@@ -23,6 +32,22 @@ export function HistoryScreen({ onOpen }: { onOpen: (id: number) => void }) {
       </header>
       <main className="content">
         {data?.length === 0 && <p className="empty">Nog geen afgeronde workouts.</p>}
+        {!!recentPrs?.length && (
+          <section className="card pr-card">
+            <h3>Recente PR's 🏆</h3>
+            <ul className="pr-list">
+              {recentPrs.map(({ s, name, date }) => (
+                <li key={s.id}>
+                  <span className="grow">
+                    <strong className="block">{name}</strong>
+                    <span className="small">{describePr(s, s.pr!).detail}</span>
+                  </span>
+                  <span className="small muted">{fmtDate(date)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {[...groups].map(([month, rows]) => (
           <section key={month}>
             <h2 className="section-title">{month}</h2>
@@ -78,7 +103,11 @@ export function WorkoutDetail({ workoutId, onClose }: { workoutId: number; onClo
             {sets
               .filter((s) => s.exerciseId === exId)
               .map((s) => (
-                <li key={s.id}>{fmtSet(s)}</li>
+                <li key={s.id} className={s.warmup ? 'muted' : ''}>
+                  {fmtSet(s)}
+                  {s.warmup && ' (warming-up)'}
+                  {s.pr && <span title={describePr(s, s.pr).title}> 🏆</span>}
+                </li>
               ))}
           </ol>
         </div>

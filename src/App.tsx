@@ -3,8 +3,8 @@ import { useState, type ReactNode } from 'react';
 import { db } from './db';
 import { Sheet } from './components/Sheet';
 import { RestBar } from './components/RestBar';
+import { PrBanner } from './components/PrBanner';
 import { Toast } from './components/Toast';
-import { fmtWeight } from './format';
 import { ExercisesScreen } from './screens/ExercisesScreen';
 import { HistoryScreen, WorkoutDetail } from './screens/HistoryScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -92,9 +92,9 @@ export function App() {
             <div className="card pr-card">
               <h3>Nieuwe records 🏆</h3>
               <ul>
-                {summary.prs.map((p) => (
-                  <li key={p.exercise}>
-                    {p.exercise}: {fmtWeight(p.weight)} kg × {p.reps}
+                {summary.prs.map((p, i) => (
+                  <li key={i}>
+                    <strong>{p.exercise}</strong>: {p.detail} <span className="muted">({p.previous})</span>
                   </li>
                 ))}
               </ul>
@@ -121,6 +121,7 @@ function withToast(content: ReactNode) {
   return (
     <>
       {content}
+      <PrBanner />
       <Toast />
     </>
   );

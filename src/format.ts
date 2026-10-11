@@ -33,11 +33,11 @@ export function fmtDate(ts: number): string {
 }
 
 export function volume(sets: WorkoutSet[]): number {
-  return sets.reduce((sum, s) => sum + (s.done ? (s.weight ?? 0) * (s.reps ?? 0) : 0), 0);
+  return sets.reduce((sum, s) => sum + (s.done && !s.warmup ? (s.weight ?? 0) * (s.reps ?? 0) : 0), 0);
 }
 
 /** Epley estimate of one-rep max. */
-export function e1rm(s: Pick<WorkoutSet, 'weight' | 'reps'>): number {
+export function e1rm(s: { weight: number | null; reps: number | null }): number {
   if (!s.weight || !s.reps) return 0;
   return s.reps === 1 ? s.weight : s.weight * (1 + s.reps / 30);
 }

@@ -2,12 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import {
   addExercisesToWorkout,
+  addWarmupSets,
   db,
   deleteSet,
   deleteWorkout,
   duplicateSet,
   finishWorkout,
   previousSets,
+  recomputePrs,
   removeExerciseFromWorkout,
   restFor,
   type Exercise,
@@ -23,14 +25,18 @@ import { RestBar } from '../components/RestBar';
 import { RestSheet } from '../components/RestSheet';
 import { Thumb } from '../components/Thumb';
 import { fmtDuration, fmtRest, fmtSet, fmtWeight, parseNum } from '../format';
+import { showPrBanner } from '../prBanner';
+import { describePr } from '../prs';
 import { startRest, stopRest } from '../restTimer';
+import { useSettings } from '../settings';
 import { showToast } from '../toast';
 import { useNow } from '../useNow';
+import { warmupSets } from '../warmup';
 
 export interface Pr {
   exercise: string;
-  weight: number;
-  reps: number;
+  detail: string;
+  previous: string;
 }
 
 interface Props {
@@ -56,7 +62,7 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
     }
     const open = all.length - done.length;
     if (open > 0 && !confirm(`${open} set(s) zijn niet afgevinkt en worden niet opgeslagen. Afronden?`)) return;
-    const prs = await findPrs(workout.id, done);
+    const prs = await collectPrs(done);
     await finishWorkout(workout.id);
     stopRest();
     onFinished(workout.id, prs);
@@ -128,7 +134,9 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
   const prev = useLiveQuery(() => previousSets(exerciseId, workout.id), [exerciseId, workout.id]) ?? [];
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [setMenu, setSetMenu] = useState<WorkoutSet | null>(null);
+  const settings = useSettings();
   const rest = restFor(workout, exercise);
+  const recompute = () => recomputePrs(workout.id, exerciseId);
 
   // Work sets are numbered 1, 2, 3; warm-ups show "W" and don't count.
   const labels: string[] = [];
@@ -160,6 +168,7 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
   async function toggle(set: WorkoutSet, index: number) {
     if (set.done) {
       await db.sets.update(set.id, { done: false, doneAt: undefined });
+      await recomputePrs(workout.id, exerciseId);
       return;
     }
     // Empty fields fall back to what you did last time (shown as placeholder).
@@ -174,6 +183,26 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
       await Promise.all(later.map((s) => db.sets.update(s.id, { weight })));
     }
     startRest(set.warmup ? Math.min(60, rest) : rest);
+    const fresh = await recomputePrs(workout.id, exerciseId);
+    const mine = fresh.find((s) => s.id === set.id);
+    if (mine?.pr && exercise) showPrBanner({ exercise: exercise.name, ...describePr(mine, mine.pr) });
+  }
+
+  async function addWarmups() {
+    const firstOpen = sets.findIndex((s) => !s.warmup && !s.done);
+    const p = firstOpen >= 0 ? prev[workIndex[firstOpen]] : undefined;
+    const work = firstOpen >= 0 ? (sets[firstOpen].weight ?? p?.weight) : undefined;
+    if (!work) {
+      showToast('Vul eerst het gewicht van je eerste werkset in');
+      return;
+    }
+    const planned = warmupSets(work, exercise?.equipment === 'barbell', settings.barWeight, settings.weightStep);
+    if (!planned.length) {
+      showToast('Dit gewicht is te licht voor warming-up sets');
+      return;
+    }
+    await addWarmupSets(workout.id, exerciseId, planned);
+    showToast(planned.length === 1 ? '1 warming-up set toegevoegd' : `${planned.length} warming-up sets toegevoegd`);
   }
 
   async function removeExercise() {
@@ -184,6 +213,7 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
 
   const menu: Action[] = [
     { label: 'Uitvoering bekijken', onClick: () => setOverlay('info') },
+    { label: 'Warming-up sets toevoegen', onClick: addWarmups },
     { label: exercise?.note ? 'Notitie bewerken' : 'Notitie toevoegen', onClick: () => setOverlay('note') },
     { label: `Rusttijd: ${fmtRest(rest)}`, onClick: () => setOverlay('rest') },
     { label: 'Voortgang bekijken', onClick: () => setOverlay('progress') },
@@ -218,6 +248,7 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
           prev={workIndex[i] >= 0 ? prev[workIndex[i]] : undefined}
           onToggle={() => toggle(s, i)}
           onMenu={() => setSetMenu(s)}
+          onEdited={() => s.done && recompute()}
         />
       ))}
       <button className="btn ghost block" onClick={addSet}>
@@ -239,26 +270,33 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
         <ActionSheet
           title={`Set ${labels[sets.findIndex((s) => s.id === setMenu.id)] ?? ''}`}
           onClose={() => setSetMenu(null)}
-          actions={setActions(setMenu, exercise)}
+          actions={setActions(setMenu, exercise, recompute)}
         />
       )}
     </section>
   );
 }
 
-function setActions(set: WorkoutSet, exercise?: Exercise): Action[] {
+function setActions(set: WorkoutSet, exercise: Exercise | undefined, recompute: () => Promise<unknown>): Action[] {
   return [
     { label: 'Set dupliceren', onClick: () => duplicateSet(set) },
     {
       label: set.warmup ? 'Markeren als werkset' : 'Markeren als warming-up',
-      onClick: () => db.sets.update(set.id, { warmup: !set.warmup }),
+      onClick: async () => {
+        await db.sets.update(set.id, { warmup: !set.warmup, pr: undefined });
+        await recompute();
+      },
     },
     {
       label: 'Set verwijderen',
       danger: true,
       onClick: async () => {
         const restore = await deleteSet(set);
-        showToast(`Set verwijderd${exercise ? ` (${exercise.name})` : ''}`, restore);
+        await recompute();
+        showToast(`Set verwijderd${exercise ? ` (${exercise.name})` : ''}`, async () => {
+          await restore();
+          await recompute();
+        });
       },
     },
   ];
@@ -270,24 +308,26 @@ function SetRow({
   prev,
   onToggle,
   onMenu,
+  onEdited,
 }: {
   set: WorkoutSet;
   label: string;
   prev?: WorkoutSet;
   onToggle: () => void;
   onMenu: () => void;
+  onEdited: () => void;
 }) {
   const [weight, setWeight] = useNumberField(set.weight);
   const [reps, setReps] = useNumberField(set.reps);
 
   function fillFromPrev() {
-    if (prev) db.sets.update(set.id, { weight: prev.weight, reps: prev.reps });
+    if (prev) db.sets.update(set.id, { weight: prev.weight, reps: prev.reps }).then(onEdited);
   }
 
   return (
-    <div className={`set-grid set-row ${set.done ? 'done' : ''} ${set.warmup ? 'warmup' : ''}`}>
+    <div className={`set-grid set-row ${set.done ? 'done' : ''} ${set.warmup ? 'warmup' : ''} ${set.pr ? 'pr' : ''}`}>
       <button className="set-num" onClick={onMenu} aria-label={`Set ${label}, menu`}>
-        {label}
+        {set.pr ? '🏆' : label}
       </button>
       <button className="prev" onClick={fillFromPrev} disabled={!prev}>
         {prev ? fmtSet(prev) : '–'}
@@ -299,7 +339,7 @@ function SetRow({
         onFocus={(e) => e.target.select()}
         onChange={(e) => {
           setWeight(e.target.value);
-          db.sets.update(set.id, { weight: parseNum(e.target.value) });
+          db.sets.update(set.id, { weight: parseNum(e.target.value) }).then(onEdited);
         }}
       />
       <input
@@ -310,7 +350,7 @@ function SetRow({
         onChange={(e) => {
           setReps(e.target.value);
           const n = parseNum(e.target.value);
-          db.sets.update(set.id, { reps: n == null ? null : Math.round(n) });
+          db.sets.update(set.id, { reps: n == null ? null : Math.round(n) }).then(onEdited);
         }}
       />
       <button className={`check ${set.done ? 'on' : ''}`} onClick={onToggle} aria-label="Set afvinken">
@@ -329,23 +369,13 @@ function useNumberField(value: number | null): [string, (v: string) => void] {
   return [text, setText];
 }
 
-async function findPrs(workoutId: number, done: WorkoutSet[]): Promise<Pr[]> {
+async function collectPrs(done: WorkoutSet[]): Promise<Pr[]> {
   const prs: Pr[] = [];
-  const byExercise = new Map<number, WorkoutSet[]>();
-  for (const s of done.filter((s) => !s.warmup)) (byExercise.get(s.exerciseId) ?? byExercise.set(s.exerciseId, []).get(s.exerciseId)!).push(s);
-  for (const [exId, list] of byExercise) {
-    const history = await db.sets
-      .where('exerciseId')
-      .equals(exId)
-      .filter((s) => s.done && !s.warmup && s.workoutId !== workoutId)
-      .toArray();
-    if (history.length === 0) continue; // first time doing it isn't a PR
-    const bestBefore = Math.max(...history.map((s) => s.weight ?? 0));
-    const best = list.reduce((a, b) => ((b.weight ?? 0) > (a.weight ?? 0) ? b : a));
-    if ((best.weight ?? 0) > bestBefore) {
-      const ex = await db.exercises.get(exId);
-      prs.push({ exercise: ex?.name ?? '?', weight: best.weight!, reps: best.reps ?? 0 });
-    }
+  for (const s of done) {
+    if (!s.pr) continue;
+    const ex = await db.exercises.get(s.exerciseId);
+    const d = describePr(s, s.pr);
+    prs.push({ exercise: ex?.name ?? '?', detail: d.detail, previous: d.previous });
   }
   return prs;
 }
