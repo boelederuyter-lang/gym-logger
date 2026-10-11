@@ -28,10 +28,12 @@ import { Thumb } from '../components/Thumb';
 import { fmtDuration, fmtRest, fmtSet, fmtWeight, parseNum } from '../format';
 import { showPrBanner } from '../prBanner';
 import { describePr } from '../prs';
-import { startRest, stopRest } from '../restTimer';
+import { startRest, stopRest, useRest } from '../restTimer';
 import { useSettings } from '../settings';
 import { showToast } from '../toast';
 import { useNow } from '../useNow';
+import { useVoice } from '../voice/useVoice';
+import { HandsfreeBar, VoiceSheet } from '../voice/VoiceSheet';
 import { warmupSets } from '../warmup';
 
 interface Props {
@@ -43,6 +45,9 @@ interface Props {
 export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   const now = useNow();
   const [picking, setPicking] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voice = useVoice(workout);
+  const resting = !!useRest();
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id).toArray(), [workout.id]);
   const totalCount = sets?.length ?? 0;
   const doneCount = sets?.filter((s) => s.done).length ?? 0;
@@ -113,7 +118,20 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
         </button>
       </main>
 
-      <RestBar />
+      <div className={`workout-bottom ${resting ? 'resting' : ''}`}>
+        <HandsfreeBar voice={voice} />
+        <RestBar />
+      </div>
+      {!voice.state.handsfree && (
+        <button
+          className={`mic-fab ${resting ? 'raised' : ''}`}
+          onClick={() => setVoiceOpen(true)}
+          aria-label="Spraakinvoer"
+        >
+          <Icon name="mic" size={26} />
+        </button>
+      )}
+      {voiceOpen && <VoiceSheet workout={workout} voice={voice} onClose={() => setVoiceOpen(false)} />}
 
       {picking && (
         <ExercisePicker
@@ -364,6 +382,13 @@ function SetRow({
       <button className={`check ${set.done ? 'on' : ''}`} onClick={onToggle} aria-label="Set afvinken">
         ✓
       </button>
+      {(set.failure || set.rir != null || set.rpe != null) && (
+        <span className="effort">
+          {set.failure && <span className="effort-tag fail">Tot falen</span>}
+          {set.rir != null && <span className="effort-tag">RIR {fmtWeight(set.rir)}</span>}
+          {set.rpe != null && <span className="effort-tag">RPE {fmtWeight(set.rpe)}</span>}
+        </span>
+      )}
     </div>
   );
 }
