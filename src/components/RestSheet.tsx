@@ -3,7 +3,15 @@ import { Sheet } from './Sheet';
 
 export const REST_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300];
 
-export function RestSheet({ value, onPick, onClose }: { value: number; onPick: (s: number) => void; onClose: () => void }) {
+export function RestSheet({
+  value,
+  onPick,
+  onClose,
+}: {
+  value: number;
+  onPick: (s: number) => void;
+  onClose: () => void;
+}) {
   return (
     <Sheet title="Rusttijd" onClose={onClose}>
       <div className="chips wrap">

@@ -29,10 +29,20 @@ export function ExercisesScreen({ onOpenWorkout }: { onOpenWorkout: () => void }
         </button>
       </header>
       <main className="content">
-        <input className="search" type="search" placeholder="Zoek op naam, spiergroep of materiaal" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input
+          className="search"
+          type="search"
+          placeholder="Zoek op naam, spiergroep of materiaal"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <div className="chips">
           {MUSCLES.map((m) => (
-            <button key={m} className={`chip ${muscle === m ? 'active' : ''}`} onClick={() => setMuscle(muscle === m ? null : m)}>
+            <button
+              key={m}
+              className={`chip ${muscle === m ? 'active' : ''}`}
+              onClick={() => setMuscle(muscle === m ? null : m)}
+            >
               {m}
             </button>
           ))}
@@ -58,8 +68,12 @@ export function ExercisesScreen({ onOpenWorkout }: { onOpenWorkout: () => void }
           </section>
         ))}
       </main>
-      {creating && <NewExerciseSheet initialName={query} onClose={() => setCreating(false)} onCreated={(ex) => setOpenId(ex.id)} />}
-      {openId != null && <ExerciseInfo exerciseId={openId} onClose={() => setOpenId(null)} onOpenWorkout={onOpenWorkout} />}
+      {creating && (
+        <NewExerciseSheet initialName={query} onClose={() => setCreating(false)} onCreated={(ex) => setOpenId(ex.id)} />
+      )}
+      {openId != null && (
+        <ExerciseInfo exerciseId={openId} onClose={() => setOpenId(null)} onOpenWorkout={onOpenWorkout} />
+      )}
     </div>
   );
 }

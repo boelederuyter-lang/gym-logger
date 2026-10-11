@@ -5,7 +5,15 @@ import { describePr } from '../prs';
 import { bestSet } from '../stats';
 import { Sheet } from './Sheet';
 
-export function SummarySheet({ workoutId, onClose, onOpen }: { workoutId: number; onClose: () => void; onOpen: () => void }) {
+export function SummarySheet({
+  workoutId,
+  onClose,
+  onOpen,
+}: {
+  workoutId: number;
+  onClose: () => void;
+  onOpen: () => void;
+}) {
   const data = useLiveQuery(async () => {
     const w = await db.workouts.get(workoutId);
     if (!w) return null;

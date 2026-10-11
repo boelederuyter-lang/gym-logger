@@ -27,7 +27,8 @@ describe('library', () => {
     for (const ex of LIBRARY) {
       for (const u of [0, 0.5, 1]) {
         const g = solve(ex.anim, u);
-        for (const seg of g.body) for (const p of seg.pts) expect(Number.isFinite(p[0]) && Number.isFinite(p[1]), ex.name).toBe(true);
+        for (const seg of g.body)
+          for (const p of seg.pts) expect(Number.isFinite(p[0]) && Number.isFinite(p[1]), ex.name).toBe(true);
       }
     }
   });

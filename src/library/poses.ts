@@ -161,7 +161,12 @@ export function solve(anim: Anim, u: number): Geometry {
   const mk: V = [-kh[0], kh[1]];
   const [eL, hL] = ik(mirror(shR), mirror(p.h), L.up, L.fore, mh);
   const [kL, fL] = ik(mirror(hipR), mirror(p.f), L.thigh, L.shin, mk);
-  body.push({ pts: [[50, hipY], [50, shY]] });
+  body.push({
+    pts: [
+      [50, hipY],
+      [50, shY],
+    ],
+  });
   body.push({ pts: [mirror(shR), shR] });
   body.push({ pts: [mirror(hipR), hipR] });
   body.push({ pts: [hipR, kR, fR, add(fR, [3, 0])] });

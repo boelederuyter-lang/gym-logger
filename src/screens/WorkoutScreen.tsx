@@ -258,7 +258,13 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
       </button>
 
       {overlay === 'menu' && <ActionSheet title={exercise?.name} actions={menu} onClose={() => setOverlay(null)} />}
-      {overlay === 'info' && <ExerciseInfo exerciseId={exerciseId} onClose={() => setOverlay(null)} primary={{ label: 'Terug naar je workout', onClick: () => setOverlay(null) }} />}
+      {overlay === 'info' && (
+        <ExerciseInfo
+          exerciseId={exerciseId}
+          onClose={() => setOverlay(null)}
+          primary={{ label: 'Terug naar je workout', onClick: () => setOverlay(null) }}
+        />
+      )}
       {overlay === 'note' && exercise && <NoteSheet exercise={exercise} onClose={() => setOverlay(null)} />}
       {overlay === 'progress' && <ProgressSheet exerciseId={exerciseId} onClose={() => setOverlay(null)} />}
       {overlay === 'rest' && (

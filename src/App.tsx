@@ -48,7 +48,9 @@ export function App() {
   }
 
   if (editingTemplate !== undefined) {
-    return withToast(<TemplateEditor templateId={editingTemplate ?? undefined} onClose={() => setEditingTemplate(undefined)} />);
+    return withToast(
+      <TemplateEditor templateId={editingTemplate ?? undefined} onClose={() => setEditingTemplate(undefined)} />,
+    );
   }
 
   return withToast(

@@ -22,7 +22,10 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
     const finished = (await db.workouts.orderBy('startedAt').toArray()).filter((w) => w.endedAt);
     const weekStart = startOfWeek(Date.now());
     const thisWeek = finished.filter((w) => w.startedAt >= weekStart);
-    const weekSets = await db.sets.where('workoutId').anyOf(thisWeek.map((w) => w.id)).toArray();
+    const weekSets = await db.sets
+      .where('workoutId')
+      .anyOf(thisWeek.map((w) => w.id))
+      .toArray();
     const lastByTemplate = new Map<number, number>();
     for (const w of finished) if (w.templateId) lastByTemplate.set(w.templateId, w.startedAt);
     const templates = await db.templates.toArray();
@@ -60,7 +63,9 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
     <div className="screen">
       <header className="page-header home-header">
         <div>
-          <span className="date">{capitalize(new Date(now).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }))}</span>
+          <span className="date">
+            {capitalize(new Date(now).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }))}
+          </span>
           <h1>Klaar om te trainen?</h1>
         </div>
         <button className="icon-btn" onClick={onOpenSettings} aria-label="Instellingen">
@@ -84,7 +89,9 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
         <section className="card week-card">
           <div className="inline spread">
             <span className="eyebrow">Deze week</span>
-            {streak > 0 && <span className="streak">🔥 {streak === 1 ? '1 week op rij' : `${streak} weken op rij`}</span>}
+            {streak > 0 && (
+              <span className="streak">🔥 {streak === 1 ? '1 week op rij' : `${streak} weken op rij`}</span>
+            )}
           </div>
           <div className="week-dots">
             {DAY_LABELS.map((d, i) => (
@@ -111,7 +118,8 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
             <span className="eyebrow">Volgende training</span>
             <strong className="card-title big-title">{next.name}</strong>
             <span className="small muted">
-              ± {minutes(next)} min · {next.items.length} oefeningen · laatst {relativeDay(lastByTemplate.get(next.id), now)}
+              ± {minutes(next)} min · {next.items.length} oefeningen · laatst{' '}
+              {relativeDay(lastByTemplate.get(next.id), now)}
             </span>
             <div className="thumb-row">
               {next.items.slice(0, 6).map((i) => (

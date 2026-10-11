@@ -44,7 +44,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         <span>Gewicht van de stang</span>
         <div className="chips wrap">
           {BAR_OPTIONS.map((w) => (
-            <button key={w} className={`chip ${settings.barWeight === w ? 'active' : ''}`} onClick={() => setSettings({ barWeight: w })}>
+            <button
+              key={w}
+              className={`chip ${settings.barWeight === w ? 'active' : ''}`}
+              onClick={() => setSettings({ barWeight: w })}
+            >
               {w} kg
             </button>
           ))}
@@ -56,7 +60,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         <p className="small muted">Warming-up sets worden hierop afgerond.</p>
         <div className="chips wrap">
           {STEP_OPTIONS.map((w) => (
-            <button key={w} className={`chip ${settings.weightStep === w ? 'active' : ''}`} onClick={() => setSettings({ weightStep: w })}>
+            <button
+              key={w}
+              className={`chip ${settings.weightStep === w ? 'active' : ''}`}
+              onClick={() => setSettings({ weightStep: w })}
+            >
               {fmtWeight(w)} kg
             </button>
           ))}

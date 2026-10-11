@@ -36,7 +36,10 @@ export function detectPr(set: SetLike, history: SetLike[], earlier: SetLike[]): 
 }
 
 /** Recomputes PRs for the sets of one exercise in one workout (in order). */
-export function computePrs<T extends SetLike & { done: boolean }>(sets: T[], history: SetLike[]): (PrInfo | undefined)[] {
+export function computePrs<T extends SetLike & { done: boolean }>(
+  sets: T[],
+  history: SetLike[],
+): (PrInfo | undefined)[] {
   const earlier: SetLike[] = [];
   return sets.map((s) => {
     if (!s.done) return undefined;
@@ -60,7 +63,11 @@ export function describePr(set: SetLike, pr: PrInfo): { title: string; detail: s
   const lift = w > 0 ? `${fmtWeight(w)} kg × ${set.reps}` : `${set.reps} reps`;
   switch (pr.type) {
     case 'weight':
-      return { title: PR_TITLES.weight, detail: `${PR_TITLES.weight}: ${lift}`, previous: `Vorig record ${fmtWeight(pr.prev)} kg` };
+      return {
+        title: PR_TITLES.weight,
+        detail: `${PR_TITLES.weight}: ${lift}`,
+        previous: `Vorig record ${fmtWeight(pr.prev)} kg`,
+      };
     case 'e1rm':
       return {
         title: PR_TITLES.e1rm,

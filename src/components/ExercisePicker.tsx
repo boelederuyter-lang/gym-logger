@@ -23,7 +23,8 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
   const [creating, setCreating] = useState(false);
 
   const filtered = useMemo(
-    () => (exercises ?? []).filter((e) => !exclude.includes(e.id) && (!muscle || e.muscle === muscle) && matches(e, query)),
+    () =>
+      (exercises ?? []).filter((e) => !exclude.includes(e.id) && (!muscle || e.muscle === muscle) && matches(e, query)),
     [exercises, query, muscle, exclude],
   );
 
@@ -51,10 +52,20 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
 
   return (
     <Sheet title="Oefeningen kiezen" onClose={onClose}>
-      <input className="search" type="search" placeholder="Zoek op naam, spiergroep of materiaal" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <input
+        className="search"
+        type="search"
+        placeholder="Zoek op naam, spiergroep of materiaal"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       <div className="chips">
         {MUSCLES.map((m) => (
-          <button key={m} className={`chip ${muscle === m ? 'active' : ''}`} onClick={() => setMuscle(muscle === m ? null : m)}>
+          <button
+            key={m}
+            className={`chip ${muscle === m ? 'active' : ''}`}
+            onClick={() => setMuscle(muscle === m ? null : m)}
+          >
             {m}
           </button>
         ))}
@@ -64,7 +75,11 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
           const on = selected.includes(ex.id);
           return (
             <li key={ex.id} className={on ? 'selected' : ''}>
-              <button className={`select-dot ${on ? 'on' : ''}`} onClick={() => toggle(ex.id)} aria-label={on ? 'Deselecteren' : 'Selecteren'}>
+              <button
+                className={`select-dot ${on ? 'on' : ''}`}
+                onClick={() => toggle(ex.id)}
+                aria-label={on ? 'Deselecteren' : 'Selecteren'}
+              >
                 {on ? '✓' : ''}
               </button>
               <button className="list-item" onClick={() => setPreview(ex.id)}>
@@ -135,7 +150,15 @@ export function NewExerciseSheet({
   }
 
   return (
-    <Sheet title="Eigen oefening" onClose={onClose} action={<button className="link strong" onClick={save} disabled={!name.trim()}>Bewaar</button>}>
+    <Sheet
+      title="Eigen oefening"
+      onClose={onClose}
+      action={
+        <button className="link strong" onClick={save} disabled={!name.trim()}>
+          Bewaar
+        </button>
+      }
+    >
       <label className="field">
         <span>Naam</span>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Bijv. Pendlay row" />

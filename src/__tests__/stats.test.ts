@@ -11,7 +11,15 @@ describe('week stats', () => {
   });
 
   it('marks training days of this week', () => {
-    expect(weekDays([at(2026, 10, 5), at(2026, 10, 8), at(2026, 10, 4)], now)).toEqual([true, false, false, true, false, false, false]);
+    expect(weekDays([at(2026, 10, 5), at(2026, 10, 8), at(2026, 10, 4)], now)).toEqual([
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ]);
   });
 
   it('counts consecutive weeks', () => {
@@ -27,7 +35,12 @@ describe('week stats', () => {
 
 describe('helpers', () => {
   it('estimates duration in 5-minute steps', () => {
-    expect(estimateMinutes([{ sets: 3, rest: 150 }, { sets: 3, rest: 90 }])).toBe(15);
+    expect(
+      estimateMinutes([
+        { sets: 3, rest: 150 },
+        { sets: 3, rest: 90 },
+      ]),
+    ).toBe(15);
   });
 
   it('describes relative days', () => {
@@ -39,7 +52,18 @@ describe('helpers', () => {
   });
 
   it('picks the best set by estimated 1RM or reps', () => {
-    expect(bestSet([{ weight: 60, reps: 8 }, { weight: 65, reps: 5 }, { weight: 55, reps: 12 }])).toEqual({ weight: 55, reps: 12 });
-    expect(bestSet([{ weight: null, reps: 12 }, { weight: null, reps: 15 }])).toEqual({ weight: null, reps: 15 });
+    expect(
+      bestSet([
+        { weight: 60, reps: 8 },
+        { weight: 65, reps: 5 },
+        { weight: 55, reps: 12 },
+      ]),
+    ).toEqual({ weight: 55, reps: 12 });
+    expect(
+      bestSet([
+        { weight: null, reps: 12 },
+        { weight: null, reps: 15 },
+      ]),
+    ).toEqual({ weight: null, reps: 15 });
   });
 });

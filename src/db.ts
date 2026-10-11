@@ -141,9 +141,7 @@ export async function previousSets(exerciseId: number, beforeWorkoutId?: number)
   }
   if (byWorkout.size === 0) return [];
   const workouts = await db.workouts.bulkGet([...byWorkout.keys()]);
-  const latest = workouts
-    .filter((w): w is Workout => !!w && !!w.endedAt)
-    .sort((a, b) => b.startedAt - a.startedAt)[0];
+  const latest = workouts.filter((w): w is Workout => !!w && !!w.endedAt).sort((a, b) => b.startedAt - a.startedAt)[0];
   if (!latest) return [];
   return byWorkout.get(latest.id)!.sort((a, b) => a.order - b.order);
 }
@@ -274,7 +272,18 @@ export async function addWarmupSets(workoutId: number, exerciseId: number, plann
         s.order += planned.length;
       });
     await db.sets.bulkAdd(
-      planned.map((p, i) => ({ workoutId, exerciseId, order: at + i, weight: p.weight, reps: p.reps, warmup: true, done: false }) as WorkoutSet),
+      planned.map(
+        (p, i) =>
+          ({
+            workoutId,
+            exerciseId,
+            order: at + i,
+            weight: p.weight,
+            reps: p.reps,
+            warmup: true,
+            done: false,
+          }) as WorkoutSet,
+      ),
     );
   });
 }
@@ -282,7 +291,11 @@ export async function addWarmupSets(workoutId: number, exerciseId: number, plann
 /** Ends the workout; sets that were never ticked off are discarded. */
 export async function finishWorkout(workoutId: number) {
   await db.transaction('rw', db.workouts, db.sets, async () => {
-    await db.sets.where('workoutId').equals(workoutId).filter((s) => !s.done).delete();
+    await db.sets
+      .where('workoutId')
+      .equals(workoutId)
+      .filter((s) => !s.done)
+      .delete();
     const w = await db.workouts.get(workoutId);
     if (!w) return;
     const remaining = await db.sets.where('workoutId').equals(workoutId).toArray();

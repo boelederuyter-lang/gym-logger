@@ -93,10 +93,19 @@ export function TemplateEditor({ templateId, onClose }: Props) {
                   <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Omhoog">
                     ↑
                   </button>
-                  <button className="icon-btn" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Omlaag">
+                  <button
+                    className="icon-btn"
+                    onClick={() => move(i, 1)}
+                    disabled={i === items.length - 1}
+                    aria-label="Omlaag"
+                  >
                     ↓
                   </button>
-                  <button className="icon-btn" onClick={() => setItems(items.filter((_, j) => j !== i))} aria-label="Verwijderen">
+                  <button
+                    className="icon-btn"
+                    onClick={() => setItems(items.filter((_, j) => j !== i))}
+                    aria-label="Verwijderen"
+                  >
                     ✕
                   </button>
                 </div>
@@ -116,11 +125,13 @@ export function TemplateEditor({ templateId, onClose }: Props) {
                 <label className="reps-field">
                   <span className="small muted">Rust</span>
                   <select value={rest} onChange={(e) => update(i, { restSeconds: Number(e.target.value) })}>
-                    {[...new Set([...REST_OPTIONS, rest])].sort((a, b) => a - b).map((s) => (
-                      <option key={s} value={s}>
-                        {fmtRest(s)}
-                      </option>
-                    ))}
+                    {[...new Set([...REST_OPTIONS, rest])]
+                      .sort((a, b) => a - b)
+                      .map((s) => (
+                        <option key={s} value={s}>
+                          {fmtRest(s)}
+                        </option>
+                      ))}
                   </select>
                 </label>
               </div>
@@ -154,7 +165,13 @@ export function TemplateEditor({ templateId, onClose }: Props) {
           }}
         />
       )}
-      {info != null && <ExerciseInfo exerciseId={info} onClose={() => setInfo(null)} primary={{ label: 'Sluiten', onClick: () => setInfo(null) }} />}
+      {info != null && (
+        <ExerciseInfo
+          exerciseId={info}
+          onClose={() => setInfo(null)}
+          primary={{ label: 'Sluiten', onClick: () => setInfo(null) }}
+        />
+      )}
     </div>
   );
 }

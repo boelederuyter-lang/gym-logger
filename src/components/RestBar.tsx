@@ -13,13 +13,19 @@ export function RestBar() {
   return (
     <div className={`rest-bar ${done ? 'done' : ''}`}>
       <div className="rest-progress" style={{ width: `${pct}%` }} />
-      <button className="rest-btn" onClick={() => adjustRest(-15)}>−15</button>
+      <button className="rest-btn" onClick={() => adjustRest(-15)}>
+        −15
+      </button>
       <div className="rest-time">
         <span className="small muted">{done ? 'Rust voorbij' : 'Rust'}</span>
         <strong>{done ? `+${fmtDuration(-left)}` : fmtDuration(left)}</strong>
       </div>
-      <button className="rest-btn" onClick={() => adjustRest(15)}>+15</button>
-      <button className="rest-btn skip" onClick={stopRest}>{done ? 'Ok' : 'Skip'}</button>
+      <button className="rest-btn" onClick={() => adjustRest(15)}>
+        +15
+      </button>
+      <button className="rest-btn skip" onClick={stopRest}>
+        {done ? 'Ok' : 'Skip'}
+      </button>
     </div>
   );
 }

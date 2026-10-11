@@ -35,16 +35,18 @@ export function ExerciseFigure({ anim, animate = false, size, className = '' }: 
   const g = solve(anim, u);
   const viewBox = useMemo(() => fitBox(anim), [anim]);
   return (
-    <svg
-      className={`figure ${className}`}
-      viewBox={viewBox}
-      width={size}
-      height={size}
-      aria-hidden="true"
-    >
+    <svg className={`figure ${className}`} viewBox={viewBox} width={size} height={size} aria-hidden="true">
       {(anim.props ?? []).filter((p) => p.k === 'line').map((p, i) => renderProp(p, g, i))}
-      {g.body.filter((s) => s.far).map((s, i) => <polyline key={`f${i}`} className="limb far" points={pts(s.pts)} />)}
-      {g.body.filter((s) => !s.far).map((s, i) => <polyline key={`b${i}`} className="limb" points={pts(s.pts)} />)}
+      {g.body
+        .filter((s) => s.far)
+        .map((s, i) => (
+          <polyline key={`f${i}`} className="limb far" points={pts(s.pts)} />
+        ))}
+      {g.body
+        .filter((s) => !s.far)
+        .map((s, i) => (
+          <polyline key={`b${i}`} className="limb" points={pts(s.pts)} />
+        ))}
       <circle className="head" cx={g.head[0]} cy={g.head[1]} r={5.5} />
       {(anim.props ?? []).filter((p) => p.k !== 'line').map((p, i) => renderProp(p, g, i))}
     </svg>
@@ -107,7 +109,17 @@ function both(g: Geometry, a: Anchor | undefined, d: V = [0, 0]): V[] {
 function renderProp(p: Prop, g: Geometry, i: number) {
   switch (p.k) {
     case 'line': {
-      const l = <line key={`l${i}`} className="prop-line" x1={p.a[0]} y1={p.a[1]} x2={p.b[0]} y2={p.b[1]} strokeWidth={p.w ?? 2} />;
+      const l = (
+        <line
+          key={`l${i}`}
+          className="prop-line"
+          x1={p.a[0]}
+          y1={p.a[1]}
+          x2={p.b[0]}
+          y2={p.b[1]}
+          strokeWidth={p.w ?? 2}
+        />
+      );
       if (!(g.front && p.m)) return l;
       const [a, b] = [mirror(p.a), mirror(p.b)];
       return (

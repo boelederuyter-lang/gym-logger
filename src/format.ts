@@ -11,6 +11,7 @@ export function fmtRest(s: number): string {
 }
 
 export function fmtSet(s: Pick<WorkoutSet, 'weight' | 'reps'>): string {
+  if (!s.weight) return `${s.reps ?? '–'} reps`;
   return `${fmtWeight(s.weight)} kg × ${s.reps ?? '–'}`;
 }
 

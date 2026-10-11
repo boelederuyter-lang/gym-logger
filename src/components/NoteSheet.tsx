@@ -11,10 +11,16 @@ export function NoteSheet({ exercise, onClose }: { exercise: Exercise; onClose: 
   }
 
   return (
-    <Sheet title="Notitie" onClose={onClose} action={<button className="link strong" onClick={save}>Bewaar</button>}>
-      <p className="muted small">
-        Eén notitie voor {exercise.name}. Je ziet hem in elke workout en elk programma.
-      </p>
+    <Sheet
+      title="Notitie"
+      onClose={onClose}
+      action={
+        <button className="link strong" onClick={save}>
+          Bewaar
+        </button>
+      }
+    >
+      <p className="muted small">Eén notitie voor {exercise.name}. Je ziet hem in elke workout en elk programma.</p>
       <textarea
         className="note-input"
         autoFocus
