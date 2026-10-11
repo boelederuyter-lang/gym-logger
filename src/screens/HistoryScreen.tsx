@@ -28,7 +28,7 @@ export function HistoryScreen({ onOpen }: { onOpen: (id: number) => void }) {
   return (
     <div className="screen">
       <header className="page-header">
-        <h1>Historie</h1>
+        <h1>Voortgang</h1>
       </header>
       <main className="content">
         {data?.length === 0 && <p className="empty">Nog geen afgeronde workouts.</p>}

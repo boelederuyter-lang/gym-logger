@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState, type ReactNode } from 'react';
 import { db } from './db';
-import { Sheet } from './components/Sheet';
+import { SummarySheet } from './components/SummarySheet';
 import { RestBar } from './components/RestBar';
+import { Icon, type IconName } from './components/Icon';
 import { PrBanner } from './components/PrBanner';
 import { Toast } from './components/Toast';
 import { ExercisesScreen } from './screens/ExercisesScreen';
@@ -11,15 +12,15 @@ import { HomeScreen } from './screens/HomeScreen';
 import { SettingsSheet } from './screens/SettingsSheet';
 import { TemplateEditor } from './screens/TemplateEditor';
 import { TemplatesScreen } from './screens/TemplatesScreen';
-import { WorkoutScreen, type Pr } from './screens/WorkoutScreen';
+import { WorkoutScreen } from './screens/WorkoutScreen';
 
 type Tab = 'home' | 'templates' | 'history' | 'exercises';
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home', label: 'Trainen', icon: '🏋️' },
-  { id: 'templates', label: "Programma's", icon: '📋' },
-  { id: 'history', label: 'Historie', icon: '📅' },
-  { id: 'exercises', label: 'Oefeningen', icon: '💪' },
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'home', label: 'Start', icon: 'home' },
+  { id: 'templates', label: "Programma's", icon: 'programs' },
+  { id: 'history', label: 'Voortgang', icon: 'progress' },
+  { id: 'exercises', label: 'Oefeningen', icon: 'exercises' },
 ];
 
 export function App() {
@@ -29,7 +30,7 @@ export function App() {
   const [editingTemplate, setEditingTemplate] = useState<number | null | undefined>(undefined);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [summary, setSummary] = useState<{ workoutId: number; prs: Pr[] } | null>(null);
+  const [summary, setSummary] = useState<number | null>(null);
 
   const active = useLiveQuery(() => db.workouts.filter((w) => !w.endedAt).first(), []);
 
@@ -38,8 +39,8 @@ export function App() {
       <WorkoutScreen
         workout={active}
         onMinimize={() => setWorkoutOpen(false)}
-        onFinished={(workoutId, prs) => {
-          setSummary({ workoutId, prs });
+        onFinished={(workoutId) => {
+          setSummary(workoutId);
           setTab('history');
         }}
       />,
@@ -77,7 +78,7 @@ export function App() {
         <nav className="tabbar">
           {TABS.map((t) => (
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
-              <span className="tab-icon">{t.icon}</span>
+              <Icon name={t.icon} />
               <span>{t.label}</span>
             </button>
           ))}
@@ -87,31 +88,14 @@ export function App() {
       {detailId != null && <WorkoutDetail workoutId={detailId} onClose={() => setDetailId(null)} />}
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
       {summary && (
-        <Sheet title="Goed gedaan! 💪" onClose={() => setSummary(null)}>
-          {summary.prs.length > 0 ? (
-            <div className="card pr-card">
-              <h3>Nieuwe records 🏆</h3>
-              <ul>
-                {summary.prs.map((p, i) => (
-                  <li key={i}>
-                    <strong>{p.exercise}</strong>: {p.detail} <span className="muted">({p.previous})</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="muted">Workout opgeslagen.</p>
-          )}
-          <button
-            className="btn primary block"
-            onClick={() => {
-              setDetailId(summary.workoutId);
-              setSummary(null);
-            }}
-          >
-            Bekijk workout
-          </button>
-        </Sheet>
+        <SummarySheet
+          workoutId={summary}
+          onClose={() => setSummary(null)}
+          onOpen={() => {
+            setDetailId(summary);
+            setSummary(null);
+          }}
+        />
       )}
     </div>,
   );

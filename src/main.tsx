@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { FigureGallery } from './dev/FigureGallery';
 import { syncLibrary } from './db';
+import '@fontsource/barlow-condensed/600.css';
+import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
 
 // Ask the browser not to evict our IndexedDB data when storage runs low.

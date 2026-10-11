@@ -18,6 +18,7 @@ import {
 } from '../db';
 import { ActionSheet, type Action } from '../components/ActionSheet';
 import { ExerciseInfo } from '../components/ExerciseInfo';
+import { Icon } from '../components/Icon';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { NoteBlock, NoteSheet } from '../components/NoteSheet';
 import { ProgressSheet } from '../components/ProgressSheet';
@@ -33,22 +34,18 @@ import { showToast } from '../toast';
 import { useNow } from '../useNow';
 import { warmupSets } from '../warmup';
 
-export interface Pr {
-  exercise: string;
-  detail: string;
-  previous: string;
-}
-
 interface Props {
   workout: Workout;
   onMinimize: () => void;
-  onFinished: (workoutId: number, prs: Pr[]) => void;
+  onFinished: (workoutId: number) => void;
 }
 
 export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   const now = useNow();
   const [picking, setPicking] = useState(false);
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id).toArray(), [workout.id]);
+  const totalCount = sets?.length ?? 0;
+  const doneCount = sets?.filter((s) => s.done).length ?? 0;
 
   async function finish() {
     const all = sets ?? [];
@@ -62,10 +59,9 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
     }
     const open = all.length - done.length;
     if (open > 0 && !confirm(`${open} set(s) zijn niet afgevinkt en worden niet opgeslagen. Afronden?`)) return;
-    const prs = await collectPrs(done);
     await finishWorkout(workout.id);
     stopRest();
-    onFinished(workout.id, prs);
+    onFinished(workout.id);
   }
 
   async function cancel() {
@@ -77,8 +73,8 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   return (
     <div className="screen workout">
       <header className="topbar">
-        <button className="link" onClick={onMinimize} aria-label="Minimaliseren">
-          ⌄
+        <button className="icon-btn" onClick={onMinimize} aria-label="Minimaliseren">
+          <Icon name="down" />
         </button>
         <div className="topbar-title">
           <input
@@ -91,6 +87,12 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
         <button className="btn primary small-btn" onClick={finish}>
           Klaar
         </button>
+        <div className="progress" aria-label={`${doneCount} van ${totalCount} sets gedaan`}>
+          <div className="progress-fill" style={{ width: `${totalCount ? (doneCount / totalCount) * 100 : 0}%` }} />
+        </div>
+        <span className="progress-label small muted">
+          {doneCount} van {totalCount} sets gedaan
+        </span>
       </header>
 
       <main className="content">
@@ -229,7 +231,7 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
           <span className="small muted">Rust {fmtRest(rest)}</span>
         </div>
         <button className="icon-btn" onClick={() => setOverlay('menu')} aria-label="Menu van oefening">
-          ⋯
+          <Icon name="more" />
         </button>
       </div>
       <NoteBlock note={exercise?.note} />
@@ -367,15 +369,4 @@ function useNumberField(value: number | null): [string, (v: string) => void] {
     setText((t) => (parseNum(t) === value ? t : value == null ? '' : fmtWeight(value)));
   }, [value]);
   return [text, setText];
-}
-
-async function collectPrs(done: WorkoutSet[]): Promise<Pr[]> {
-  const prs: Pr[] = [];
-  for (const s of done) {
-    if (!s.pr) continue;
-    const ex = await db.exercises.get(s.exerciseId);
-    const d = describePr(s, s.pr);
-    prs.push({ exercise: ex?.name ?? '?', detail: d.detail, previous: d.previous });
-  }
-  return prs;
 }
