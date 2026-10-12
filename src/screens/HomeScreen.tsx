@@ -6,18 +6,23 @@ import { fmtDuration, volume } from '../format';
 import { defaultsFor } from '../library/defaults';
 import { estimateMinutes, relativeDay, startOfWeek, weekDays, weekStreak } from '../stats';
 import { useNow } from '../useNow';
+import { weekSchema } from '../plan/generator';
+import { loggedDays, nextDay, startPlanDay } from '../plan/start';
+import { setWeek, usePlan } from '../plan/store';
 
 interface Props {
   active?: Workout;
   onOpenWorkout: () => void;
   onOpenSettings: () => void;
   onNewTemplate: () => void;
+  onOpenPlan: () => void;
 }
 
 const DAY_LABELS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 
-export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplate }: Props) {
+export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplate, onOpenPlan }: Props) {
   const now = useNow(60_000);
+  const plan = usePlan();
   const data = useLiveQuery(async () => {
     const finished = (await db.workouts.orderBy('startedAt').toArray()).filter((w) => w.endedAt);
     const weekStart = startOfWeek(Date.now());
@@ -30,11 +35,12 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
     for (const w of finished) if (w.templateId) lastByTemplate.set(w.templateId, w.startedAt);
     const templates = await db.templates.toArray();
     const exercises = new Map((await db.exercises.toArray()).map((e) => [e.id, e]));
-    return { finished, thisWeek, weekVolume: volume(weekSets), lastByTemplate, templates, exercises };
+    const all = await db.workouts.toArray();
+    return { finished, thisWeek, weekVolume: volume(weekSets), lastByTemplate, templates, exercises, all };
   }, []);
 
   if (!data) return <div className="screen" />;
-  const { finished, thisWeek, weekVolume, lastByTemplate, templates, exercises } = data;
+  const { finished, thisWeek, weekVolume, lastByTemplate, templates, exercises, all } = data;
   const starts = finished.map((w) => w.startedAt);
   const days = weekDays(starts, now);
   const today = (new Date(now).getDay() + 6) % 7;
@@ -44,7 +50,19 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
   const ordered = [...templates].sort(
     (a, b) => (lastByTemplate.get(a.id) ?? 0) - (lastByTemplate.get(b.id) ?? 0) || a.name.localeCompare(b.name),
   );
-  const [next, ...others] = ordered;
+  // With a training schema, that comes first and all programs are listed below it.
+  const next = plan ? undefined : ordered[0];
+  const others = plan ? ordered : ordered.slice(1);
+
+  // Next up from the schema: the first day of this week that isn't done yet.
+  const planNext = plan ? nextDay(plan, loggedDays(plan, all)) : null;
+  const planDay = plan && planNext != null ? weekSchema(plan.schema, plan.week)[planNext] : null;
+
+  async function startPlan() {
+    if (!plan || planNext == null) return;
+    if (!active) await startPlanDay(plan, planNext);
+    onOpenWorkout();
+  }
 
   const minutes = (t: Template) =>
     estimateMinutes(
@@ -113,7 +131,50 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           </div>
         </section>
 
-        {next ? (
+        {plan && planDay && !active && (
+          <section className="card next-card">
+            <span className="eyebrow">
+              Schema · week {plan.week} · dag {planNext! + 1}
+            </span>
+            <strong className="card-title big-title">{planDay.naam}</strong>
+            <span className="small muted">
+              ± {planDay.minuten} min · {planDay.oefeningen.length} oefeningen{planDay.cardio ? ' + cardio' : ''}
+            </span>
+            <div className="thumb-row">
+              {planDay.oefeningen
+                .filter((o) => o.slug)
+                .slice(0, 6)
+                .map((o) => (
+                  <Thumb key={o.id} exercise={{ slug: o.slug, muscle: '' }} size={46} />
+                ))}
+            </div>
+            <button className="btn primary block big" onClick={startPlan} disabled={!!active}>
+              Start {planDay.naam}
+            </button>
+            <button className="link center" onClick={onOpenPlan}>
+              Hele schema bekijken
+            </button>
+          </section>
+        )}
+        {plan && !planDay && !active && (
+          <section className="card next-card">
+            <span className="eyebrow">Schema</span>
+            <strong className="card-title big-title">
+              {plan.week < 4 ? `Week ${plan.week} afgerond! 🎉` : 'Blok afgerond! 🎉'}
+            </strong>
+            {plan.week < 4 ? (
+              <button className="btn primary block big" onClick={() => setWeek(plan.week + 1)}>
+                Door naar week {plan.week + 1}
+              </button>
+            ) : (
+              <button className="btn primary block big" onClick={onOpenPlan}>
+                Nieuw blok starten
+              </button>
+            )}
+          </section>
+        )}
+
+        {plan ? null : next ? (
           <section className="card next-card">
             <span className="eyebrow">Volgende training</span>
             <strong className="card-title big-title">{next.name}</strong>
@@ -132,16 +193,21 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           </section>
         ) : (
           <section className="card empty-card">
-            <p>Maak een programma, dan zet ik hier je volgende training klaar.</p>
-            <button className="btn secondary" onClick={onNewTemplate}>
-              + Programma maken
-            </button>
+            <p>Maak een trainingsschema of een eigen programma, dan zet ik hier je volgende training klaar.</p>
+            <div className="row-buttons">
+              <button className="btn primary" onClick={onOpenPlan}>
+                Schema maken
+              </button>
+              <button className="btn secondary" onClick={onNewTemplate}>
+                + Programma
+              </button>
+            </div>
           </section>
         )}
 
         {others.length > 0 && (
           <>
-            <h2 className="section-title">Andere programma's</h2>
+            <h2 className="section-title">{plan ? "Programma's" : "Andere programma's"}</h2>
             <ul className="list card">
               {others.map((t) => (
                 <li key={t.id}>

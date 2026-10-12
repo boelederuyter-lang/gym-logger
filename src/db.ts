@@ -3,6 +3,7 @@ import { LEGACY_MUSCLES, LEGACY_NAMES, LIBRARY, type Equipment } from './library
 import { defaultsFor } from './library/defaults';
 import { computePrs } from './prs';
 import type { PlannedSet } from './warmup';
+import { getPlan, restorePlan } from './plan/store';
 
 export type { Equipment };
 
@@ -16,6 +17,7 @@ export interface Exercise {
   tip?: string;
   note?: string; // personal note, e.g. "rek op stand 12"
   custom?: boolean;
+  planKey?: string; // id in de schema-database, voor schema-oefeningen buiten de bibliotheek
 }
 
 export interface TemplateItem {
@@ -41,6 +43,15 @@ export interface Workout {
   exerciseIds: number[]; // display order within the workout
   rest?: Record<number, number>; // rest seconds per exercise
   note?: string;
+  plan?: PlanRef; // set when the workout was started from the training schema
+}
+
+/** Which day of the training schema a workout belongs to. */
+export interface PlanRef {
+  seed: number;
+  blok: number;
+  week: number;
+  dag: number;
 }
 
 export type PrType = 'weight' | 'e1rm' | 'reps';
@@ -166,8 +177,19 @@ export async function startWorkout(template?: Template, extraExercises: Exercise
   });
 }
 
+export interface PlanTarget {
+  repRange?: [number, number]; // prefilled reps are kept within this range
+  weightDelta?: number; // added to last time's weight (schema progression)
+}
+
 /** Adds sets for an exercise, prefilled with what you did last time. */
-export async function addPlannedSets(workoutId: number, exerciseId: number, count: number, targetReps: number | null) {
+export async function addPlannedSets(
+  workoutId: number,
+  exerciseId: number,
+  count: number,
+  targetReps: number | null,
+  target: PlanTarget = {},
+) {
   const prev = await previousSets(exerciseId, workoutId);
   const existing = await db.sets.where({ workoutId, exerciseId }).toArray();
   const work = existing.filter((s) => !s.warmup).length;
@@ -178,12 +200,18 @@ export async function addPlannedSets(workoutId: number, exerciseId: number, coun
       workoutId,
       exerciseId,
       order: maxOrder + 1 + i,
-      weight: p?.weight ?? null,
-      reps: p?.reps ?? targetReps,
+      weight: p?.weight != null ? Math.max(0, p.weight + (target.weightDelta ?? 0)) : null,
+      reps: clampReps(p?.reps ?? targetReps, target.repRange),
       done: false,
     } as WorkoutSet;
   });
   await db.sets.bulkAdd(rows);
+}
+
+function clampReps(reps: number | null, range?: [number, number]): number | null {
+  if (!range) return reps;
+  if (reps == null) return range[0];
+  return Math.min(range[1], Math.max(range[0], reps));
 }
 
 export async function addExercisesToWorkout(workout: Workout, exercises: Exercise[]) {
@@ -334,7 +362,8 @@ export async function exportData(): Promise<string> {
     db.workouts.toArray(),
     db.sets.toArray(),
   ]);
-  return JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), exercises, templates, workouts, sets });
+  const plan = getPlan();
+  return JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), exercises, templates, workouts, sets, plan });
 }
 
 export async function importData(json: string) {
@@ -349,4 +378,5 @@ export async function importData(json: string) {
     await db.sets.bulkAdd(data.sets);
   });
   await syncLibrary();
+  if (data.plan) restorePlan(data.plan);
 }

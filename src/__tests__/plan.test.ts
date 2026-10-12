@@ -1,7 +1,6 @@
-// Tests voor de trainingsschema-generator (public/schema). Plain JS, want de generator
-// is vanilla JS zonder build-stap.
+// Tests voor de trainingsschema-generator (src/plan).
 import { describe, expect, it } from 'vitest';
-import { OEFENINGEN, CARDIO, BESCHIKBAAR, APPARATUUR } from '../../public/schema/js/exercises.js';
+import { OEFENINGEN, CARDIO, BESCHIKBAAR, APPARATUUR } from '../plan/exercises';
 import {
   APPARATUUR_KEUZES,
   DAGEN,
@@ -13,19 +12,23 @@ import {
   normaliseerInvoer,
   schatMinuten,
   weekSchema,
-} from '../../public/schema/js/generator.js';
+  type Invoer,
+  type SchemaDag,
+  type WeekDag,
+} from '../plan/generator';
 
 const SEEDS = Array.from({ length: 15 }, (_, i) => i * 7919 + 1);
 
-const combinaties = [];
+const combinaties: Invoer[] = [];
 for (const doel of Object.keys(DOELEN))
   for (const niveau of Object.keys(NIVEAUS))
     for (const dagen of DAGEN)
       for (const tijd of TIJDEN)
-        for (const apparatuur of Object.keys(APPARATUUR_KEUZES)) combinaties.push({ doel, niveau, dagen, tijd, apparatuur });
+        for (const apparatuur of Object.keys(APPARATUUR_KEUZES))
+          combinaties.push({ doel, niveau, dagen, tijd, apparatuur } as Invoer);
 
 const byId = new Map(OEFENINGEN.map((o) => [o.id, o]));
-const sleutel = (dag) => dag.oefeningen.map((o) => o.id).sort().join('|');
+const sleutel = (dag: SchemaDag) => dag.oefeningen.map((o) => o.id).sort().join('|');
 
 describe('oefeningendatabase', () => {
   it('heeft unieke ids en alle verplichte velden', () => {
@@ -65,7 +68,7 @@ describe('generator: alle combinaties', () => {
 
           // Alleen oefeningen die bij apparatuur en niveau passen.
           for (const id of ids) {
-            const o = byId.get(id);
+            const o = byId.get(id)!;
             expect(BESCHIKBAAR[invoer.apparatuur], `${ctx} · ${id}`).toContain(o.apparatuur);
             if (o.niveau) expect(o.niveau, `${ctx} · ${id}`).toBe(invoer.niveau);
           }
@@ -90,12 +93,13 @@ describe('generator: alle combinaties', () => {
 
           // Cardio alleen bij vetverlies, passend bij apparatuur en niveau.
           if (invoer.doel === 'vetverlies') {
-            const c = CARDIO.find((x) => x.id === dag.cardio?.id);
+            const cardio = dag.cardio!;
+            const c = CARDIO.find((x) => x.id === cardio.id)!;
             expect(c, ctx).toBeTruthy();
             expect(BESCHIKBAAR[invoer.apparatuur], ctx).toContain(c.apparatuur);
-            expect(c.soorten, ctx).toContain(dag.cardio.soort);
-            if (invoer.niveau === 'beginner') expect(dag.cardio.soort, ctx).toBe('rustig');
-            expect(dag.cardio.minuten, ctx).toBeGreaterThanOrEqual(8);
+            expect(c.soorten, ctx).toContain(cardio.soort);
+            if (invoer.niveau === 'beginner') expect(cardio.soort, ctx).toBe('rustig');
+            expect(cardio.minuten, ctx).toBeGreaterThanOrEqual(8);
           } else {
             expect(dag.cardio, ctx).toBeNull();
           }
@@ -120,7 +124,7 @@ describe('generator: schema-regels', () => {
   });
 
   it('gebruikt reps en rust per doel', () => {
-    const compound = (doel) => genereerSchema({ ...basis, doel }, 3).dagen[0].oefeningen[0];
+    const compound = (doel: Invoer['doel']) => genereerSchema({ ...basis, doel }, 3).dagen[0].oefeningen[0];
     expect(compound('kracht').reps).toEqual([4, 6]);
     expect(compound('spiermassa').reps).toEqual([8, 12]);
     expect(compound('fitheid').reps).toEqual([12, 15]);
@@ -130,7 +134,7 @@ describe('generator: schema-regels', () => {
 
   it('geeft beginners minder volume dan gevorderden', () => {
     for (const tijd of TIJDEN) {
-      const totaal = (niveau) =>
+      const totaal = (niveau: Invoer['niveau']) =>
         genereerSchema({ ...basis, tijd, niveau }, 5).dagen.reduce((s, d) => s + d.oefeningen.reduce((t, o) => t + o.sets, 0), 0);
       // Bij 30 minuten is de tijd voor beide niveaus de beperkende factor.
       if (tijd === 30) expect(totaal('beginner')).toBeLessThanOrEqual(totaal('gevorderd'));
@@ -139,7 +143,7 @@ describe('generator: schema-regels', () => {
   });
 
   it('geeft meer oefeningen bij meer tijd', () => {
-    const aantal = (tijd) => genereerSchema({ ...basis, tijd }, 9).dagen[0].oefeningen.length;
+    const aantal = (tijd: number) => genereerSchema({ ...basis, tijd }, 9).dagen[0].oefeningen.length;
     expect(aantal(30)).toBeLessThan(aantal(60));
     expect(aantal(60)).toBeLessThanOrEqual(aantal(75));
   });
@@ -188,7 +192,7 @@ describe('progressie over 4 weken', () => {
   });
 
   it('week 4: deload met ongeveer 40% minder sets', () => {
-    const sets = (w) => w.reduce((s, d) => s + d.oefeningen.reduce((t, o) => t + o.sets, 0), 0);
+    const sets = (w: WeekDag[]) => w.reduce((s, d) => s + d.oefeningen.reduce((t, o) => t + o.sets, 0), 0);
     const verhouding = sets(w4) / sets(w1);
     expect(verhouding).toBeGreaterThan(0.45);
     expect(verhouding).toBeLessThan(0.75);
@@ -197,29 +201,29 @@ describe('progressie over 4 weken', () => {
 });
 
 describe('cardio bij vetverlies', () => {
-  const invoer = { doel: 'vetverlies', niveau: 'gevorderd', dagen: 5, tijd: 60, apparatuur: 'gym' };
+  const invoer: Invoer = { doel: 'vetverlies', niveau: 'gevorderd', dagen: 5, tijd: 60, apparatuur: 'gym' };
   const schema = genereerSchema(invoer, 11);
   const weken = [1, 2, 3, 4].map((w) => weekSchema(schema, w));
 
   it('maximaal twee intervaltrainingen per week voor gevorderden', () => {
-    expect(schema.dagen.filter((d) => d.cardio.soort === 'interval').length).toBe(2);
+    expect(schema.dagen.filter((d) => d.cardio!.soort === 'interval').length).toBe(2);
   });
 
   it('kiest in de gym een cardiomachine en varieert tussen dagen', () => {
-    expect(schema.dagen.every((d) => CARDIO.find((c) => c.id === d.cardio.id).apparatuur === 'machine')).toBe(true);
-    expect(new Set(schema.dagen.map((d) => d.cardio.id)).size).toBeGreaterThan(2);
+    expect(schema.dagen.every((d) => CARDIO.find((c) => c.id === d.cardio!.id)!.apparatuur === 'machine')).toBe(true);
+    expect(new Set(schema.dagen.map((d) => d.cardio!.id)).size).toBeGreaterThan(2);
   });
 
   it('volgt dezelfde opbouw over het blok', () => {
     schema.dagen.forEach((dag, d) => {
-      const [w1, w2, w3, w4] = weken.map((w) => w[d].cardio);
-      if (dag.cardio.soort === 'rustig') {
+      const [w1, w2, w3, w4] = weken.map((w) => w[d].cardio!);
+      if (dag.cardio!.soort === 'rustig') {
         expect(w2.minuten).toBe(w1.minuten + 2);
         expect(w3.minuten).toBe(w1.minuten);
       } else {
-        expect(w2.rondes).toBe(w1.rondes + 1);
+        expect(w2.rondes).toBe(w1.rondes! + 1);
         expect(w3.rondes).toBe(w1.rondes);
-        expect(w3.werk).toBeGreaterThan(w1.werk);
+        expect(w3.werk).toBeGreaterThan(w1.werk!);
       }
       expect(w4.minuten).toBeLessThan(w1.minuten);
       expect(w1.uitleg).toBeTruthy();

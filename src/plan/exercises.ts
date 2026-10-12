@@ -13,7 +13,38 @@
 //   basis        optioneel: standaardoefening die vaker gekozen wordt
 //   eenheid      optioneel: 'sec' voor oefeningen die je op tijd doet (plank e.d.)
 
-export const APPARATUUR = {
+import { LIBRARY, type Equipment, type Muscle } from '../library/exercises';
+
+export type Apparatuur = 'barbell' | 'machine' | 'kabel' | 'optrekstang' | 'bank' | 'dumbbells' | 'lichaamsgewicht';
+export type Patroon =
+  | 'squat' | 'lunge' | 'hinge' | 'heup' | 'hpush' | 'vpush' | 'hpull' | 'vpull' | 'borst-iso'
+  | 'schouder-iso' | 'achterschouder' | 'biceps' | 'triceps' | 'quad-iso' | 'ham-iso' | 'kuiten' | 'core';
+export type ApparatuurKeuze = 'gym' | 'dumbbells' | 'thuis';
+
+export interface PlanOefening {
+  id: string;
+  naam: string;
+  spiergroep: string;
+  patroon: Patroon;
+  apparatuur: Apparatuur;
+  type: 'compound' | 'isolatie';
+  deel: 'boven' | 'onder' | 'core';
+  tip: string;
+  niveau?: 'beginner' | 'gevorderd';
+  basis?: boolean;
+  eenheid?: 'sec';
+}
+
+export interface CardioOptie {
+  id: string;
+  naam: string;
+  apparatuur: Apparatuur;
+  soorten: ('rustig' | 'interval')[];
+  niveau?: 'beginner' | 'gevorderd';
+  tip: string;
+}
+
+export const APPARATUUR: Record<Apparatuur, string> = {
   barbell: 'Barbell',
   machine: 'Machine',
   kabel: 'Kabel',
@@ -24,13 +55,13 @@ export const APPARATUUR = {
 };
 
 /** Welke apparatuur bij elke keuze in het formulier beschikbaar is. */
-export const BESCHIKBAAR = {
+export const BESCHIKBAAR: Record<ApparatuurKeuze, Apparatuur[]> = {
   gym: ['barbell', 'machine', 'kabel', 'optrekstang', 'bank', 'dumbbells', 'lichaamsgewicht'],
   dumbbells: ['dumbbells', 'lichaamsgewicht'],
   thuis: ['lichaamsgewicht'],
 };
 
-export const OEFENINGEN = [
+const DATABASE: PlanOefening[] = [
   // ---------- Squat (knie-dominant) ----------
   { id: 'back-squat', naam: 'Back squat', spiergroep: 'Benen (quadriceps)', patroon: 'squat', apparatuur: 'barbell', type: 'compound', deel: 'onder', basis: true,
     tip: 'Stang op je bovenrug, voeten schouderbreed. Zak tot je heupen onder knieniveau zijn en houd je borst omhoog.' },
@@ -328,7 +359,7 @@ export const OEFENINGEN = [
 
 // Cardio voor het doel vetverlies. `soorten` zegt of een activiteit geschikt is voor
 // rustige duurcardio ('rustig') en/of intervallen ('interval').
-export const CARDIO = [
+export const CARDIO: CardioOptie[] = [
   { id: 'loopband-helling', naam: 'Loopband op helling', apparatuur: 'machine', soorten: ['rustig'],
     tip: 'Stevig wandelen op 8–12% helling, 5–6 km/u. Niet vasthouden aan de leuningen.' },
   { id: 'crosstrainer', naam: 'Crosstrainer', apparatuur: 'machine', soorten: ['rustig', 'interval'],
@@ -348,3 +379,88 @@ export const CARDIO = [
   { id: 'hiit-circuit', naam: 'HIIT-circuit', apparatuur: 'lichaamsgewicht', soorten: ['interval'], niveau: 'gevorderd',
     tip: 'Wissel per interval: jumping jacks, high knees, mountain climbers, burpees. Zacht landen en ga voor tempo met goede techniek.' },
 ];
+
+// ---------------------------------------------------------------------------
+// Koppeling met de oefeningenbibliotheek van de Gym Logger. Gekoppelde oefeningen
+// delen hun geschiedenis, PR's en animatie met de logger en krijgen de bibliotheeknaam.
+// Elke bibliotheekoefening komt hoogstens één keer voor, zodat een training nooit twee
+// keer dezelfde oefening in de logger krijgt.
+export const BIBLIOTHEEK: Record<string, string> = {
+  'back-squat': 'squat',
+  'front-squat': 'front-squat',
+  'leg-press': 'leg-press',
+  'hack-squat': 'hack-squat',
+  'goblet-squat': 'goblet-squat',
+  'bulgarian-db': 'bulgarian-split-squat',
+  'walking-lunge-db': 'lunges',
+  deadlift: 'deadlift',
+  rdl: 'romanian-deadlift',
+  'good-morning': 'good-morning',
+  'back-extension': 'back-extension',
+  'hip-thrust': 'hip-thrust',
+  'glute-bridge': 'glute-bridge',
+  'bench-press': 'bankdrukken',
+  'incline-bench': 'incline-bankdrukken',
+  'db-bench': 'dumbbell-bankdrukken',
+  'incline-db': 'incline-dumbbell-press',
+  'chest-press': 'chest-press-machine',
+  dips: 'dips',
+  'push-up': 'push-up',
+  ohp: 'overhead-press',
+  'seated-db-press': 'dumbbell-schouderpress',
+  'arnold-press': 'arnold-press',
+  'machine-press': 'shoulder-press-machine',
+  'barbell-row': 'barbell-row',
+  'cable-row': 'seated-cable-row',
+  'machine-row': 'seated-row-machine',
+  't-bar-row': 't-bar-row',
+  'one-arm-row': 'dumbbell-row',
+  'pull-up': 'pull-up',
+  'chin-up': 'chin-up',
+  'lat-pulldown': 'lat-pulldown',
+  'close-pulldown': 'close-grip-lat-pulldown',
+  'cable-fly': 'cable-crossover',
+  'pec-deck': 'pec-deck',
+  'db-fly': 'dumbbell-flyes',
+  'lateral-raise': 'lateral-raises',
+  'cable-lateral': 'cable-lateral-raise',
+  'front-raise': 'front-raises',
+  'face-pull': 'face-pulls',
+  'reverse-pec-deck': 'reverse-pec-deck',
+  'barbell-curl': 'barbell-curl',
+  'cable-curl': 'cable-curl',
+  'db-curl': 'dumbbell-curl',
+  'hammer-curl': 'hammer-curl',
+  pushdown: 'triceps-pushdown',
+  'close-grip-bench': 'close-grip-bankdrukken',
+  'db-overhead-ext': 'overhead-triceps-extension',
+  'leg-extension': 'leg-extension',
+  'lying-leg-curl': 'leg-curl',
+  'seated-leg-curl': 'seated-leg-curl',
+  'standing-calf': 'kuitheffen',
+  'seated-calf': 'kuitheffen-zittend',
+  plank: 'plank',
+  'hanging-knee-raise': 'hanging-leg-raise',
+  'leg-raise': 'lying-leg-raise',
+  'cable-crunch': 'cable-crunch',
+  'mountain-climber': 'mountain-climbers',
+};
+
+const LIB_NAAM = new Map(LIBRARY.map((l) => [l.slug, l.name]));
+
+export const OEFENINGEN: PlanOefening[] = DATABASE.map((o) => {
+  const slug = BIBLIOTHEEK[o.id];
+  return slug && LIB_NAAM.has(slug) ? { ...o, naam: LIB_NAAM.get(slug)! } : o;
+});
+
+/** Spiergroep-categorie en apparatuur zoals de logger ze kent, voor oefeningen buiten de bibliotheek. */
+export const LOGGER_SPIER: Record<Patroon, Muscle> = {
+  squat: 'Benen', lunge: 'Benen', hinge: 'Benen', 'quad-iso': 'Benen', 'ham-iso': 'Benen', kuiten: 'Benen',
+  heup: 'Billen', hpush: 'Borst', 'borst-iso': 'Borst', vpush: 'Schouders', 'schouder-iso': 'Schouders',
+  achterschouder: 'Schouders', hpull: 'Rug', vpull: 'Rug', biceps: 'Armen', triceps: 'Armen', core: 'Core',
+};
+
+export const LOGGER_APPARATUUR: Record<Apparatuur, Equipment> = {
+  barbell: 'barbell', machine: 'machine', kabel: 'cable', optrekstang: 'bodyweight',
+  bank: 'dumbbell', dumbbells: 'dumbbell', lichaamsgewicht: 'bodyweight',
+};

@@ -1,17 +1,91 @@
 // Schema-logica. Puur en deterministisch: dezelfde invoer + seed geeft hetzelfde schema,
 // zodat een gedeelde link bij een vriend exact hetzelfde schema oplevert.
 
-import { OEFENINGEN, CARDIO, BESCHIKBAAR, APPARATUUR } from './exercises.js';
+import {
+  APPARATUUR,
+  BESCHIKBAAR,
+  BIBLIOTHEEK,
+  CARDIO,
+  OEFENINGEN,
+  type ApparatuurKeuze,
+  type Patroon,
+  type PlanOefening,
+} from './exercises';
 
-export const DOELEN = { kracht: 'Kracht', spiermassa: 'Spiermassa', fitheid: 'Algemene fitheid', vetverlies: 'Vetverlies' };
-export const NIVEAUS = { beginner: 'Beginner', gevorderd: 'Gevorderd' };
+export type Doel = 'kracht' | 'spiermassa' | 'fitheid' | 'vetverlies';
+export type Niveau = 'beginner' | 'gevorderd';
+type Tijd = 30 | 45 | 60 | 75;
+
+export interface Invoer {
+  doel: Doel;
+  niveau: Niveau;
+  dagen: number;
+  tijd: number;
+  apparatuur: ApparatuurKeuze;
+}
+
+export interface SchemaOefening {
+  id: string;
+  /** Slug in de bibliotheek van de logger, als de oefening daarin staat. */
+  slug?: string;
+  naam: string;
+  spiergroep: string;
+  patroon: Patroon;
+  apparatuur: string;
+  zonderGewicht: boolean;
+  type: 'compound' | 'isolatie';
+  deel: 'boven' | 'onder' | 'core';
+  tip: string;
+  eenheid: 'reps' | 'sec';
+  sets: number;
+  reps: [number, number];
+  rust: number;
+  advies?: string | null;
+}
+
+export interface Cardio {
+  id: string;
+  naam: string;
+  tip: string;
+  apparatuur: string;
+  soort: 'rustig' | 'interval';
+  minuten: number;
+  rondes?: number;
+  werk?: number;
+  rust?: number;
+  uitleg?: string;
+  advies?: string | null;
+}
+
+export interface SchemaDag {
+  type: string;
+  naam: string;
+  focus: string;
+  oefeningen: SchemaOefening[];
+  cardio: Cardio | null;
+}
+
+export interface Schema {
+  versie: 1;
+  invoer: Invoer;
+  seed: number;
+  split: string;
+  dagen: SchemaDag[];
+}
+
+export interface WeekDag extends SchemaDag {
+  minuten: number;
+}
+
+export const DOELEN: Record<Doel, string> = { kracht: 'Kracht', spiermassa: 'Spiermassa', fitheid: 'Algemene fitheid', vetverlies: 'Vetverlies' };
+export const NIVEAUS: Record<Niveau, string> = { beginner: 'Beginner', gevorderd: 'Gevorderd' };
 export const DAGEN = [2, 3, 4, 5];
 export const TIJDEN = [30, 45, 60, 75];
-export const APPARATUUR_KEUZES = { gym: 'Volledige gym', dumbbells: 'Alleen dumbbells', thuis: 'Thuis zonder spullen' };
+export const APPARATUUR_KEUZES: Record<ApparatuurKeuze, string> = { gym: 'Volledige gym', dumbbells: 'Alleen dumbbells', thuis: 'Thuis zonder spullen' };
 
 export const MIN_OEFENINGEN = 3;
 
-const REPS = {
+const REPS: Record<Doel, Record<'compound' | 'isolatie' | 'sec', [number, number]>> = {
   kracht: { compound: [4, 6], isolatie: [6, 8], sec: [20, 30] },
   spiermassa: { compound: [8, 12], isolatie: [8, 12], sec: [30, 45] },
   fitheid: { compound: [12, 15], isolatie: [12, 15], sec: [40, 60] },
@@ -28,12 +102,12 @@ const RUST = {
 };
 
 /** Minuten cardio na de krachttraining bij vetverlies, per sessieduur. */
-const CARDIO_MINUTEN = { 30: 10, 45: 12, 60: 15, 75: 20 };
+const CARDIO_MINUTEN: Record<Tijd, number> = { 30: 10, 45: 12, 60: 15, 75: 20 };
 const INTERVAL = { werk: 30, rust: 60, inUit: 5 }; // 3 min inlopen + 2 min uitlopen
 
 // Een trainingsdag is een rij slots in volgorde van belangrijkheid. Elk slot noemt
 // bewegingspatronen; het eerste patroon waarvoor een passende oefening bestaat wint.
-const DAGTYPES = {
+const DAGTYPES: Record<string, { naam: string; focus: string; slots: Patroon[][] }> = {
   fbA: { naam: 'Full body A', focus: 'Hele lichaam', slots: [
     ['squat', 'lunge'], ['hpush'], ['hpull'], ['hinge', 'heup'], ['schouder-iso', 'achterschouder', 'vpush'],
     ['biceps'], ['triceps'], ['core'], ['kuiten'] ] },
@@ -63,7 +137,7 @@ const DAGTYPES = {
     ['squat'], ['hinge'], ['lunge'], ['heup'], ['quad-iso'], ['ham-iso'], ['kuiten'], ['core'] ] },
 };
 
-const SPLITS = {
+const SPLITS: Record<number, { naam: string; dagen: string[] }> = {
   2: { naam: 'Full body', dagen: ['fbA', 'fbB'] },
   3: { naam: 'Full body', dagen: ['fbA', 'fbB', 'fbC'] },
   4: { naam: 'Upper/lower', dagen: ['upperA', 'lowerA', 'upperB', 'lowerB'] },
@@ -71,7 +145,7 @@ const SPLITS = {
 };
 
 export const WEKEN = [
-  { nr: 1, label: 'Basis', uitleg: 'Kies per oefening een gewicht waarmee je alle sets haalt met nog 1–2 reps over. Schrijf je gewichten op.' },
+  { nr: 1, label: 'Basis', uitleg: 'Kies per oefening een gewicht waarmee je alle sets haalt met nog 1–2 reps over. De app onthoudt je gewichten voor de volgende weken.' },
   { nr: 2, label: '+1 rep', uitleg: 'Zelfde gewichten als week 1, maar doe 1 rep extra per set.' },
   { nr: 3, label: 'Zwaarder', uitleg: 'Gewicht omhoog: +2,5 kg voor bovenlichaam, +5 kg voor onderlichaam. Reps terug naar week 1.' },
   { nr: 4, label: 'Deload', uitleg: 'Herstelweek: ongeveer 40% minder sets met het gewicht van week 1. Focus op techniek.' },
@@ -80,7 +154,7 @@ export const WEKEN = [
 // ---------------------------------------------------------------------------
 
 /** Kleine seeded random generator (mulberry32). */
-export function rng(seed) {
+export function rng(seed: number) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -96,14 +170,14 @@ export function nieuweSeed() {
 }
 
 /** Valideert de invoer; geeft null bij ongeldige waarden. */
-export function normaliseerInvoer(raw) {
+export function normaliseerInvoer(raw: Record<string, unknown> | null | undefined): Invoer | null {
   if (!raw) return null;
   const invoer = {
-    doel: raw.doel,
-    niveau: raw.niveau,
+    doel: raw.doel as Doel,
+    niveau: raw.niveau as Niveau,
     dagen: Number(raw.dagen),
     tijd: Number(raw.tijd),
-    apparatuur: raw.apparatuur,
+    apparatuur: raw.apparatuur as ApparatuurKeuze,
   };
   if (!(invoer.doel in DOELEN) || !(invoer.niveau in NIVEAUS) || !(invoer.apparatuur in APPARATUUR_KEUZES)) return null;
   if (!DAGEN.includes(invoer.dagen) || !TIJDEN.includes(invoer.tijd)) return null;
@@ -111,18 +185,18 @@ export function normaliseerInvoer(raw) {
 }
 
 /** Oefeningen die passen bij apparatuur en niveau. */
-export function beschikbareOefeningen(apparatuur, niveau) {
+export function beschikbareOefeningen(apparatuur: ApparatuurKeuze, niveau: Niveau) {
   const ok = BESCHIKBAAR[apparatuur];
   return OEFENINGEN.filter((o) => ok.includes(o.apparatuur) && (!o.niveau || o.niveau === niveau));
 }
 
-function repsVoor(oefening, doel) {
+function repsVoor(oefening: PlanOefening, doel: Doel): [number, number] {
   if (oefening.eenheid === 'sec') return REPS[doel].sec;
   return REPS[doel][oefening.type];
 }
 
 /** Geschatte duur van een training in minuten (incl. 5 min warming-up). */
-export function schatMinuten(oefeningen) {
+export function schatMinuten(oefeningen: Pick<SchemaOefening, 'reps' | 'eenheid' | 'sets' | 'rust'>[]) {
   let sec = 5 * 60;
   for (const o of oefeningen) {
     const gem = (o.reps[0] + o.reps[1]) / 2;
@@ -132,7 +206,7 @@ export function schatMinuten(oefeningen) {
   return Math.round(sec / 60);
 }
 
-function gewicht(oefening, invoer, gebruik) {
+function gewicht(oefening: PlanOefening, invoer: Invoer, gebruik: Map<string, number>) {
   let w = 1;
   if (oefening.basis) w *= invoer.doel === 'kracht' ? 6 : 4;
   const zonderGewicht = oefening.apparatuur === 'lichaamsgewicht' && oefening.patroon !== 'core';
@@ -143,7 +217,7 @@ function gewicht(oefening, invoer, gebruik) {
   return w / (1 + 8 * (gebruik.get(oefening.id) ?? 0));
 }
 
-function kies(kandidaten, invoer, gebruik, random) {
+function kies(kandidaten: PlanOefening[], invoer: Invoer, gebruik: Map<string, number>, random: () => number) {
   const gewichten = kandidaten.map((o) => gewicht(o, invoer, gebruik));
   let r = random() * gewichten.reduce((a, b) => a + b, 0);
   for (let i = 0; i < kandidaten.length; i++) {
@@ -153,11 +227,13 @@ function kies(kandidaten, invoer, gebruik, random) {
   return kandidaten[kandidaten.length - 1];
 }
 
-function maakOefening(o, invoer, sets) {
+function maakOefening(o: PlanOefening, invoer: Invoer, sets: number): SchemaOefening {
   return {
     id: o.id,
+    slug: BIBLIOTHEEK[o.id],
     naam: o.naam,
     spiergroep: o.spiergroep,
+    patroon: o.patroon,
     apparatuur: APPARATUUR[o.apparatuur],
     zonderGewicht: o.apparatuur === 'lichaamsgewicht',
     type: o.type,
@@ -170,10 +246,17 @@ function maakOefening(o, invoer, sets) {
   };
 }
 
-function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
+function bouwDag(
+  type: string,
+  invoer: Invoer,
+  pool: PlanOefening[],
+  gebruik: Map<string, number>,
+  random: () => number,
+  cardioMinuten = 0,
+): SchemaOefening[] {
   const beginner = invoer.niveau === 'beginner';
   const budget = (invoer.tijd === 75 ? 80 : invoer.tijd) - cardioMinuten;
-  const basisAantal = Math.max(MIN_OEFENINGEN, { 30: 4, 45: 5, 60: 6, 75: 7 }[invoer.tijd] - (beginner ? 1 : 0));
+  const basisAantal = Math.max(MIN_OEFENINGEN, ({ 30: 4, 45: 5, 60: 6, 75: 7 } as Record<number, number>)[invoer.tijd] - (beginner ? 1 : 0));
   const maxAantal = beginner ? basisAantal : Math.min(8, basisAantal + 1);
   const setsStart = { compound: beginner ? 3 : 4, isolatie: beginner ? 2 : 3 };
   const setsMin = { compound: 2, isolatie: 2 };
@@ -182,11 +265,11 @@ function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
 
   const slots = DAGTYPES[type].slots;
   let slotIndex = 0;
-  const gekozen = new Set();
-  const lijst = [];
+  const gekozen = new Set<string>();
+  const lijst: SchemaOefening[] = [];
 
   // Volgende oefening uit de slots, zonder dubbele oefeningen binnen de dag.
-  const volgende = () => {
+  const volgende = (): SchemaOefening | null => {
     while (slotIndex < slots.length) {
       const patronen = slots[slotIndex++];
       for (const patroon of patronen) {
@@ -208,7 +291,7 @@ function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
   }
 
   // Te lang? Eerst isolatiesets omlaag, dan de laatste oefening eraf, dan compoundsets omlaag.
-  const krimp = () => {
+  const krimp = (): boolean | void => {
     for (let i = lijst.length - 1; i >= 0; i--) {
       if (lijst[i].type === 'isolatie' && lijst[i].sets > setsMin.isolatie) return void lijst[i].sets--;
     }
@@ -221,7 +304,7 @@ function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
   while (schatMinuten(lijst) > budget && krimp() !== false);
 
   // Tijd over? Gevorderden krijgen een extra oefening of extra sets zolang het past.
-  const past = (extra) => schatMinuten(extra) <= budget;
+  const past = (extra: SchemaOefening[]) => schatMinuten(extra) <= budget;
   let kanToevoegen = true;
   for (;;) {
     if (kanToevoegen && lijst.length < maxAantal) {
@@ -233,7 +316,7 @@ function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
       kanToevoegen = false; // geen oefening meer of past niet: verder alleen sets
     }
     let groei = false;
-    for (const t of ['compound', 'isolatie']) {
+    for (const t of ['compound', 'isolatie'] as const) {
       const kandidaat = lijst.filter((o) => o.type === t && o.sets < setsMax[t]).sort((a, b) => a.sets - b.sets)[0];
       if (!kandidaat) continue;
       kandidaat.sets++;
@@ -255,8 +338,8 @@ function bouwDag(type, invoer, pool, gebruik, random, cardioMinuten = 0) {
  * Cardioblok na de krachttraining. Beginners doen rustige duurcardio; gevorderden doen
  * op dag 1 en 3 intervallen (maximaal twee keer per week) en verder rustige cardio.
  */
-function kiesCardio(invoer, index, gebruik, random) {
-  const soort = invoer.niveau === 'gevorderd' && (index === 0 || index === 2) ? 'interval' : 'rustig';
+function kiesCardio(invoer: Invoer, index: number, gebruik: Map<string, number>, random: () => number): Cardio {
+  const soort: Cardio['soort'] = invoer.niveau === 'gevorderd' && (index === 0 || index === 2) ? 'interval' : 'rustig';
   const ok = BESCHIKBAAR[invoer.apparatuur];
   const kandidaten = CARDIO.filter(
     (c) => ok.includes(c.apparatuur) && c.soorten.includes(soort) && (!c.niveau || c.niveau === invoer.niveau),
@@ -269,48 +352,50 @@ function kiesCardio(invoer, index, gebruik, random) {
   const c = opties[Math.floor(random() * opties.length)];
   gebruik.set(c.id, (gebruik.get(c.id) ?? 0) + 1);
 
-  const minuten = CARDIO_MINUTEN[invoer.tijd];
+  const minuten = CARDIO_MINUTEN[invoer.tijd as Tijd];
   const basis = { id: c.id, naam: c.naam, tip: c.tip, apparatuur: APPARATUUR[c.apparatuur], soort };
   if (soort === 'rustig') return { ...basis, minuten };
   const rondes = Math.floor(((minuten - INTERVAL.inUit) * 60) / (INTERVAL.werk + INTERVAL.rust));
   return { ...basis, rondes, werk: INTERVAL.werk, rust: INTERVAL.rust, minuten: intervalMinuten(rondes, INTERVAL.werk, INTERVAL.rust) };
 }
 
-const intervalMinuten = (rondes, werk, rust) => Math.round(INTERVAL.inUit + (rondes * (werk + rust)) / 60);
+const intervalMinuten = (rondes: number, werk: number, rust: number) => Math.round(INTERVAL.inUit + (rondes * (werk + rust)) / 60);
+
+const perWeek = <T>(week: number, waarden: [T, T, T, T]): T => waarden[week - 1];
 
 /** Cardio in een bepaalde week, met dezelfde opbouw als de krachtoefeningen. */
-function cardioWeek(c, week) {
+function cardioWeek(c: Cardio | null, week: number): Cardio | null {
   if (!c) return null;
   if (c.soort === 'rustig') {
-    const minuten = { 1: c.minuten, 2: c.minuten + 2, 3: c.minuten, 4: Math.round(c.minuten * 0.6) }[week];
-    const uitleg = {
-      1: `${minuten} min in een rustig tempo: je kunt nog praten.`,
-      2: `${minuten} min in hetzelfde tempo als week 1.`,
-      3: `${minuten} min, iets hoger tempo, weerstand of helling dan week 1.`,
-      4: `${minuten} min ontspannen, zonder te forceren.`,
-    }[week];
-    return { ...c, minuten, uitleg, advies: { 1: null, 2: '+2 min', 3: 'Intensiever', 4: 'Deload' }[week] };
+    const minuten = perWeek(week, [c.minuten, c.minuten + 2, c.minuten, Math.round(c.minuten * 0.6)]);
+    const uitleg = perWeek(week, [
+      `${minuten} min in een rustig tempo: je kunt nog praten.`,
+      `${minuten} min in hetzelfde tempo als week 1.`,
+      `${minuten} min, iets hoger tempo, weerstand of helling dan week 1.`,
+      `${minuten} min ontspannen, zonder te forceren.`,
+    ]);
+    return { ...c, minuten, uitleg, advies: perWeek(week, [null, '+2 min', 'Intensiever', 'Deload']) };
   }
-  let { rondes, werk, rust } = c;
+  let { rondes = 0, werk = INTERVAL.werk, rust = INTERVAL.rust } = c;
   if (week === 2) rondes += 1;
   if (week === 3) [werk, rust] = [40, 50];
   if (week === 4) rondes = Math.max(2, Math.round(rondes * 0.6));
   const uitleg = `3 min inlopen · ${rondes} × ${werk} sec hard / ${rust} sec rustig · 2 min uitlopen`;
-  const advies = { 1: null, 2: '+1 ronde', 3: '40/50 sec', 4: 'Deload' }[week];
+  const advies = perWeek(week, [null, '+1 ronde', '40/50 sec', 'Deload']);
   return { ...c, rondes, werk, rust, minuten: intervalMinuten(rondes, werk, rust), uitleg, advies };
 }
 
-const sleutel = (oefeningen) => oefeningen.map((o) => o.id).sort().join('|');
+const sleutel = (oefeningen: SchemaOefening[]) => oefeningen.map((o) => o.id).sort().join('|');
 
 /** Genereert een volledig schema. */
-export function genereerSchema(rawInvoer, seed = nieuweSeed()) {
-  const invoer = normaliseerInvoer(rawInvoer);
+export function genereerSchema(rawInvoer: Invoer | Record<string, unknown>, seed = nieuweSeed()): Schema {
+  const invoer = normaliseerInvoer(rawInvoer as Record<string, unknown>);
   if (!invoer) throw new Error('Ongeldige invoer');
   const random = rng(seed);
   const pool = beschikbareOefeningen(invoer.apparatuur, invoer.niveau);
   const split = SPLITS[invoer.dagen];
-  const gebruik = new Map();
-  const dagen = [];
+  const gebruik = new Map<string, number>();
+  const dagen: SchemaDag[] = [];
 
   split.dagen.forEach((type, index) => {
     const cardio = invoer.doel === 'vetverlies' ? kiesCardio(invoer, index, gebruik, random) : null;
@@ -330,17 +415,17 @@ export function genereerSchema(rawInvoer, seed = nieuweSeed()) {
 // ---------------------------------------------------------------------------
 // Progressie binnen het blok van 4 weken
 
-function adviesZwaarder(o) {
+function adviesZwaarder(o: SchemaOefening) {
   if (o.zonderGewicht) return o.eenheid === 'sec' ? '+10 sec of zwaardere variant' : 'Zwaardere variant of 3 sec zakken';
   return o.deel === 'onder' ? '+5 kg' : '+2,5 kg';
 }
 
 /** Het schema zoals het er in een bepaalde week (1–4) uitziet. */
-export function weekSchema(schema, week) {
+export function weekSchema(schema: Schema, week: number): WeekDag[] {
   return schema.dagen.map((dag) => {
     const oefeningen = dag.oefeningen.map((o) => {
       let { sets, reps } = o;
-      let advies = null;
+      let advies: string | null = null;
       if (week === 2) {
         const stap = o.eenheid === 'sec' ? 5 : 1;
         reps = [reps[0] + stap, reps[1] + stap];
@@ -361,11 +446,11 @@ export function weekSchema(schema, week) {
 // ---------------------------------------------------------------------------
 // Weergave-hulpjes
 
-export function formatReps(o) {
+export function formatReps(o: Pick<SchemaOefening, 'reps' | 'eenheid'>) {
   return `${o.reps[0]}–${o.reps[1]}${o.eenheid === 'sec' ? ' sec' : ''}`;
 }
 
-export function formatRust(sec) {
+export function formatRust(sec: number) {
   if (sec < 60) return `${sec} sec`;
   const m = Math.floor(sec / 60);
   const s = sec % 60;

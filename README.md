@@ -23,22 +23,22 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 
 Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
-## Trainingsschema-generator
+## Trainingsschema
 
-Een losse webapp in `public/schema/`: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij het doel vetverlies komt er na elke training een cardioblok bij (rustig of intervallen). Vanilla HTML/CSS/JS zonder build-stap; alles wordt in localStorage bewaard.
+Tabblad **Schema**: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij vetverlies komt er na elke training een cardioblok bij.
 
-- Online: https://boelederuyter-lang.github.io/gym-logger/schema/
-- `js/exercises.js`: oefeningendatabase · `js/generator.js`: schema-logica · `js/app.js`: interface
-- Met de deelknop stuur je een link waarmee een vriend precies hetzelfde schema krijgt.
-- Netlify: sleep de map `public/schema` naar https://app.netlify.com/drop en je hebt een eigen link.
-- Lokaal bekijken: `npx serve public/schema` (niet via `file://`, ES-modules hebben een server nodig).
+- **Start training** bij een dag opent een gelogde workout met de sets, reps en rust van die week. In week 3 staat het gewicht al +2,5 kg (boven) of +5 kg (onder) hoger klaar, in de deload weer terug.
+- Afgeronde schema-workouts tellen automatisch als gedaan; het startscherm zet de volgende schema-training klaar.
+- Schema-oefeningen zijn gekoppeld aan de oefeningenbibliotheek, dus PR's, voortgang en animaties werken gewoon. Oefeningen die niet in de bibliotheek staan worden als eigen oefening aangemaakt.
+- Met de deelknop stuur je een link waarmee een vriend precies hetzelfde schema krijgt. Het oude adres `/schema/` verwijst door.
+- Code: `src/plan/` (oefeningendatabase, generator, opslag, workouts starten) en `src/screens/PlanScreen.tsx`.
 
 ## Ontwikkelen
 
 ```bash
 npm install
 npm run dev      # lokale dev-server (galerij met alle animaties: /#figuren)
-npm test         # unit-tests (parser, PR's, warming-up, grafieken, migratie, schema-generator)
+npm test         # unit-tests (parser, PR's, warming-up, grafieken, migratie, schema)
 npm run build    # productie-build in dist/
 npm run format   # Prettier
 ```
