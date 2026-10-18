@@ -28,7 +28,11 @@ for (const doel of Object.keys(DOELEN))
           combinaties.push({ doel, niveau, dagen, tijd, apparatuur } as Invoer);
 
 const byId = new Map(OEFENINGEN.map((o) => [o.id, o]));
-const sleutel = (dag: SchemaDag) => dag.oefeningen.map((o) => o.id).sort().join('|');
+const sleutel = (dag: SchemaDag) =>
+  dag.oefeningen
+    .map((o) => o.id)
+    .sort()
+    .join('|');
 
 describe('oefeningendatabase', () => {
   it('heeft unieke ids en alle verplichte velden', () => {
@@ -119,8 +123,19 @@ describe('generator: schema-regels', () => {
   it('kiest de split op basis van het aantal dagen', () => {
     expect(genereerSchema({ ...basis, dagen: 2 }, 1).dagen.map((d) => d.naam)).toEqual(['Full body A', 'Full body B']);
     expect(genereerSchema({ ...basis, dagen: 3 }, 1).split).toBe('Full body');
-    expect(genereerSchema({ ...basis, dagen: 4 }, 1).dagen.map((d) => d.naam)).toEqual(['Upper A', 'Lower A', 'Upper B', 'Lower B']);
-    expect(genereerSchema({ ...basis, dagen: 5 }, 1).dagen.map((d) => d.naam)).toEqual(['Push', 'Pull', 'Legs', 'Upper B', 'Lower B']);
+    expect(genereerSchema({ ...basis, dagen: 4 }, 1).dagen.map((d) => d.naam)).toEqual([
+      'Upper A',
+      'Lower A',
+      'Upper B',
+      'Lower B',
+    ]);
+    expect(genereerSchema({ ...basis, dagen: 5 }, 1).dagen.map((d) => d.naam)).toEqual([
+      'Push',
+      'Pull',
+      'Legs',
+      'Upper B',
+      'Lower B',
+    ]);
   });
 
   it('gebruikt reps en rust per doel', () => {
@@ -135,7 +150,10 @@ describe('generator: schema-regels', () => {
   it('geeft beginners minder volume dan gevorderden', () => {
     for (const tijd of TIJDEN) {
       const totaal = (niveau: Invoer['niveau']) =>
-        genereerSchema({ ...basis, tijd, niveau }, 5).dagen.reduce((s, d) => s + d.oefeningen.reduce((t, o) => t + o.sets, 0), 0);
+        genereerSchema({ ...basis, tijd, niveau }, 5).dagen.reduce(
+          (s, d) => s + d.oefeningen.reduce((t, o) => t + o.sets, 0),
+          0,
+        );
       // Bij 30 minuten is de tijd voor beide niveaus de beperkende factor.
       if (tijd === 30) expect(totaal('beginner')).toBeLessThanOrEqual(totaal('gevorderd'));
       else expect(totaal('beginner')).toBeLessThan(totaal('gevorderd'));
@@ -163,7 +181,10 @@ describe('generator: schema-regels', () => {
 });
 
 describe('progressie over 4 weken', () => {
-  const schema = genereerSchema({ doel: 'spiermassa', niveau: 'gevorderd', dagen: 3, tijd: 60, apparatuur: 'thuis' }, 77);
+  const schema = genereerSchema(
+    { doel: 'spiermassa', niveau: 'gevorderd', dagen: 3, tijd: 60, apparatuur: 'thuis' },
+    77,
+  );
   const [w1, w2, w3, w4] = [1, 2, 3, 4].map((w) => weekSchema(schema, w));
 
   it('houdt elke week dezelfde oefeningen', () => {
@@ -181,7 +202,10 @@ describe('progressie over 4 weken', () => {
   });
 
   it('week 3: reps terug naar week 1 met gewichtsadvies', () => {
-    const gym = weekSchema(genereerSchema({ doel: 'kracht', niveau: 'gevorderd', dagen: 4, tijd: 60, apparatuur: 'gym' }, 4), 3);
+    const gym = weekSchema(
+      genereerSchema({ doel: 'kracht', niveau: 'gevorderd', dagen: 4, tijd: 60, apparatuur: 'gym' }, 4),
+      3,
+    );
     for (const dag of gym)
       for (const o of dag.oefeningen) {
         if (o.zonderGewicht) continue;

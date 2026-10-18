@@ -363,7 +363,15 @@ export async function exportData(): Promise<string> {
     db.sets.toArray(),
   ]);
   const plan = getPlan();
-  return JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), exercises, templates, workouts, sets, plan });
+  return JSON.stringify({
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    exercises,
+    templates,
+    workouts,
+    sets,
+    plan,
+  });
 }
 
 export async function importData(json: string) {

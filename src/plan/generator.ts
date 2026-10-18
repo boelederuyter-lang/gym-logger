@@ -77,11 +77,20 @@ export interface WeekDag extends SchemaDag {
   minuten: number;
 }
 
-export const DOELEN: Record<Doel, string> = { kracht: 'Kracht', spiermassa: 'Spiermassa', fitheid: 'Algemene fitheid', vetverlies: 'Vetverlies' };
+export const DOELEN: Record<Doel, string> = {
+  kracht: 'Kracht',
+  spiermassa: 'Spiermassa',
+  fitheid: 'Algemene fitheid',
+  vetverlies: 'Vetverlies',
+};
 export const NIVEAUS: Record<Niveau, string> = { beginner: 'Beginner', gevorderd: 'Gevorderd' };
 export const DAGEN = [2, 3, 4, 5];
 export const TIJDEN = [30, 45, 60, 75];
-export const APPARATUUR_KEUZES: Record<ApparatuurKeuze, string> = { gym: 'Volledige gym', dumbbells: 'Alleen dumbbells', thuis: 'Thuis zonder spullen' };
+export const APPARATUUR_KEUZES: Record<ApparatuurKeuze, string> = {
+  gym: 'Volledige gym',
+  dumbbells: 'Alleen dumbbells',
+  thuis: 'Thuis zonder spullen',
+};
 
 export const MIN_OEFENINGEN = 3;
 
@@ -108,33 +117,135 @@ const INTERVAL = { werk: 30, rust: 60, inUit: 5 }; // 3 min inlopen + 2 min uitl
 // Een trainingsdag is een rij slots in volgorde van belangrijkheid. Elk slot noemt
 // bewegingspatronen; het eerste patroon waarvoor een passende oefening bestaat wint.
 const DAGTYPES: Record<string, { naam: string; focus: string; slots: Patroon[][] }> = {
-  fbA: { naam: 'Full body A', focus: 'Hele lichaam', slots: [
-    ['squat', 'lunge'], ['hpush'], ['hpull'], ['hinge', 'heup'], ['schouder-iso', 'achterschouder', 'vpush'],
-    ['biceps'], ['triceps'], ['core'], ['kuiten'] ] },
-  fbB: { naam: 'Full body B', focus: 'Hele lichaam', slots: [
-    ['hinge', 'heup'], ['vpush', 'hpush'], ['vpull', 'hpull'], ['lunge', 'squat'], ['borst-iso', 'hpush'],
-    ['ham-iso', 'heup'], ['triceps'], ['biceps'], ['core'] ] },
-  fbC: { naam: 'Full body C', focus: 'Hele lichaam', slots: [
-    ['squat', 'lunge'], ['hpush'], ['hpull', 'vpull'], ['heup', 'hinge'], ['vpush'],
-    ['achterschouder', 'schouder-iso'], ['biceps'], ['triceps'], ['core'], ['kuiten'] ] },
-  upperA: { naam: 'Upper A', focus: 'Bovenlichaam', slots: [
-    ['hpush'], ['hpull'], ['vpush'], ['vpull', 'hpull'], ['schouder-iso', 'achterschouder'],
-    ['biceps'], ['triceps'], ['borst-iso', 'hpush'], ['core'] ] },
-  lowerA: { naam: 'Lower A', focus: 'Onderlichaam', slots: [
-    ['squat'], ['hinge'], ['lunge'], ['quad-iso', 'squat'], ['ham-iso', 'hinge'], ['kuiten'], ['core'], ['heup'] ] },
-  upperB: { naam: 'Upper B', focus: 'Bovenlichaam', slots: [
-    ['vpull', 'hpull'], ['hpush'], ['hpull'], ['vpush'], ['borst-iso', 'hpush'],
-    ['achterschouder', 'schouder-iso'], ['triceps'], ['biceps'], ['schouder-iso'], ['core'] ] },
-  lowerB: { naam: 'Lower B', focus: 'Onderlichaam', slots: [
-    ['hinge'], ['squat', 'lunge'], ['heup'], ['lunge'], ['ham-iso'], ['quad-iso'], ['kuiten'], ['core'] ] },
-  push: { naam: 'Push', focus: 'Borst, schouders en triceps', slots: [
-    ['hpush'], ['vpush'], ['hpush'], ['schouder-iso', 'vpush'], ['borst-iso', 'hpush'],
-    ['triceps'], ['triceps'], ['core'] ] },
-  pull: { naam: 'Pull', focus: 'Rug, biceps en hamstrings', slots: [
-    ['vpull', 'hpull'], ['hpull'], ['hinge'], ['hpull', 'vpull'], ['achterschouder'],
-    ['biceps'], ['biceps'], ['core'] ] },
-  legs: { naam: 'Legs', focus: 'Benen en billen', slots: [
-    ['squat'], ['hinge'], ['lunge'], ['heup'], ['quad-iso'], ['ham-iso'], ['kuiten'], ['core'] ] },
+  fbA: {
+    naam: 'Full body A',
+    focus: 'Hele lichaam',
+    slots: [
+      ['squat', 'lunge'],
+      ['hpush'],
+      ['hpull'],
+      ['hinge', 'heup'],
+      ['schouder-iso', 'achterschouder', 'vpush'],
+      ['biceps'],
+      ['triceps'],
+      ['core'],
+      ['kuiten'],
+    ],
+  },
+  fbB: {
+    naam: 'Full body B',
+    focus: 'Hele lichaam',
+    slots: [
+      ['hinge', 'heup'],
+      ['vpush', 'hpush'],
+      ['vpull', 'hpull'],
+      ['lunge', 'squat'],
+      ['borst-iso', 'hpush'],
+      ['ham-iso', 'heup'],
+      ['triceps'],
+      ['biceps'],
+      ['core'],
+    ],
+  },
+  fbC: {
+    naam: 'Full body C',
+    focus: 'Hele lichaam',
+    slots: [
+      ['squat', 'lunge'],
+      ['hpush'],
+      ['hpull', 'vpull'],
+      ['heup', 'hinge'],
+      ['vpush'],
+      ['achterschouder', 'schouder-iso'],
+      ['biceps'],
+      ['triceps'],
+      ['core'],
+      ['kuiten'],
+    ],
+  },
+  upperA: {
+    naam: 'Upper A',
+    focus: 'Bovenlichaam',
+    slots: [
+      ['hpush'],
+      ['hpull'],
+      ['vpush'],
+      ['vpull', 'hpull'],
+      ['schouder-iso', 'achterschouder'],
+      ['biceps'],
+      ['triceps'],
+      ['borst-iso', 'hpush'],
+      ['core'],
+    ],
+  },
+  lowerA: {
+    naam: 'Lower A',
+    focus: 'Onderlichaam',
+    slots: [
+      ['squat'],
+      ['hinge'],
+      ['lunge'],
+      ['quad-iso', 'squat'],
+      ['ham-iso', 'hinge'],
+      ['kuiten'],
+      ['core'],
+      ['heup'],
+    ],
+  },
+  upperB: {
+    naam: 'Upper B',
+    focus: 'Bovenlichaam',
+    slots: [
+      ['vpull', 'hpull'],
+      ['hpush'],
+      ['hpull'],
+      ['vpush'],
+      ['borst-iso', 'hpush'],
+      ['achterschouder', 'schouder-iso'],
+      ['triceps'],
+      ['biceps'],
+      ['schouder-iso'],
+      ['core'],
+    ],
+  },
+  lowerB: {
+    naam: 'Lower B',
+    focus: 'Onderlichaam',
+    slots: [['hinge'], ['squat', 'lunge'], ['heup'], ['lunge'], ['ham-iso'], ['quad-iso'], ['kuiten'], ['core']],
+  },
+  push: {
+    naam: 'Push',
+    focus: 'Borst, schouders en triceps',
+    slots: [
+      ['hpush'],
+      ['vpush'],
+      ['hpush'],
+      ['schouder-iso', 'vpush'],
+      ['borst-iso', 'hpush'],
+      ['triceps'],
+      ['triceps'],
+      ['core'],
+    ],
+  },
+  pull: {
+    naam: 'Pull',
+    focus: 'Rug, biceps en hamstrings',
+    slots: [
+      ['vpull', 'hpull'],
+      ['hpull'],
+      ['hinge'],
+      ['hpull', 'vpull'],
+      ['achterschouder'],
+      ['biceps'],
+      ['biceps'],
+      ['core'],
+    ],
+  },
+  legs: {
+    naam: 'Legs',
+    focus: 'Benen en billen',
+    slots: [['squat'], ['hinge'], ['lunge'], ['heup'], ['quad-iso'], ['ham-iso'], ['kuiten'], ['core']],
+  },
 };
 
 const SPLITS: Record<number, { naam: string; dagen: string[] }> = {
@@ -145,10 +256,23 @@ const SPLITS: Record<number, { naam: string; dagen: string[] }> = {
 };
 
 export const WEKEN = [
-  { nr: 1, label: 'Basis', uitleg: 'Kies per oefening een gewicht waarmee je alle sets haalt met nog 1–2 reps over. De app onthoudt je gewichten voor de volgende weken.' },
+  {
+    nr: 1,
+    label: 'Basis',
+    uitleg:
+      'Kies per oefening een gewicht waarmee je alle sets haalt met nog 1–2 reps over. De app onthoudt je gewichten voor de volgende weken.',
+  },
   { nr: 2, label: '+1 rep', uitleg: 'Zelfde gewichten als week 1, maar doe 1 rep extra per set.' },
-  { nr: 3, label: 'Zwaarder', uitleg: 'Gewicht omhoog: +2,5 kg voor bovenlichaam, +5 kg voor onderlichaam. Reps terug naar week 1.' },
-  { nr: 4, label: 'Deload', uitleg: 'Herstelweek: ongeveer 40% minder sets met het gewicht van week 1. Focus op techniek.' },
+  {
+    nr: 3,
+    label: 'Zwaarder',
+    uitleg: 'Gewicht omhoog: +2,5 kg voor bovenlichaam, +5 kg voor onderlichaam. Reps terug naar week 1.',
+  },
+  {
+    nr: 4,
+    label: 'Deload',
+    uitleg: 'Herstelweek: ongeveer 40% minder sets met het gewicht van week 1. Focus op techniek.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -256,7 +380,10 @@ function bouwDag(
 ): SchemaOefening[] {
   const beginner = invoer.niveau === 'beginner';
   const budget = (invoer.tijd === 75 ? 80 : invoer.tijd) - cardioMinuten;
-  const basisAantal = Math.max(MIN_OEFENINGEN, ({ 30: 4, 45: 5, 60: 6, 75: 7 } as Record<number, number>)[invoer.tijd] - (beginner ? 1 : 0));
+  const basisAantal = Math.max(
+    MIN_OEFENINGEN,
+    ({ 30: 4, 45: 5, 60: 6, 75: 7 } as Record<number, number>)[invoer.tijd] - (beginner ? 1 : 0),
+  );
   const maxAantal = beginner ? basisAantal : Math.min(8, basisAantal + 1);
   const setsStart = { compound: beginner ? 3 : 4, isolatie: beginner ? 2 : 3 };
   const setsMin = { compound: 2, isolatie: 2 };
@@ -356,10 +483,17 @@ function kiesCardio(invoer: Invoer, index: number, gebruik: Map<string, number>,
   const basis = { id: c.id, naam: c.naam, tip: c.tip, apparatuur: APPARATUUR[c.apparatuur], soort };
   if (soort === 'rustig') return { ...basis, minuten };
   const rondes = Math.floor(((minuten - INTERVAL.inUit) * 60) / (INTERVAL.werk + INTERVAL.rust));
-  return { ...basis, rondes, werk: INTERVAL.werk, rust: INTERVAL.rust, minuten: intervalMinuten(rondes, INTERVAL.werk, INTERVAL.rust) };
+  return {
+    ...basis,
+    rondes,
+    werk: INTERVAL.werk,
+    rust: INTERVAL.rust,
+    minuten: intervalMinuten(rondes, INTERVAL.werk, INTERVAL.rust),
+  };
 }
 
-const intervalMinuten = (rondes: number, werk: number, rust: number) => Math.round(INTERVAL.inUit + (rondes * (werk + rust)) / 60);
+const intervalMinuten = (rondes: number, werk: number, rust: number) =>
+  Math.round(INTERVAL.inUit + (rondes * (werk + rust)) / 60);
 
 const perWeek = <T>(week: number, waarden: [T, T, T, T]): T => waarden[week - 1];
 
@@ -385,7 +519,11 @@ function cardioWeek(c: Cardio | null, week: number): Cardio | null {
   return { ...c, rondes, werk, rust, minuten: intervalMinuten(rondes, werk, rust), uitleg, advies };
 }
 
-const sleutel = (oefeningen: SchemaOefening[]) => oefeningen.map((o) => o.id).sort().join('|');
+const sleutel = (oefeningen: SchemaOefening[]) =>
+  oefeningen
+    .map((o) => o.id)
+    .sort()
+    .join('|');
 
 /** Genereert een volledig schema. */
 export function genereerSchema(rawInvoer: Invoer | Record<string, unknown>, seed = nieuweSeed()): Schema {
@@ -416,7 +554,8 @@ export function genereerSchema(rawInvoer: Invoer | Record<string, unknown>, seed
 // Progressie binnen het blok van 4 weken
 
 function adviesZwaarder(o: SchemaOefening) {
-  if (o.zonderGewicht) return o.eenheid === 'sec' ? '+10 sec of zwaardere variant' : 'Zwaardere variant of 3 sec zakken';
+  if (o.zonderGewicht)
+    return o.eenheid === 'sec' ? '+10 sec of zwaardere variant' : 'Zwaardere variant of 3 sec zakken';
   return o.deel === 'onder' ? '+5 kg' : '+2,5 kg';
 }
 

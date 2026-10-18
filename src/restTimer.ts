@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { playTones } from './audio';
+import { getSettings } from './settings';
 
 export interface RestState {
   endsAt: number;
@@ -19,7 +20,7 @@ function emit() {
 function scheduleBeep() {
   stopBeep?.();
   stopBeep = null;
-  if (!state) return;
+  if (!state || !getSettings().restBeep) return;
   stopBeep = playTones([880, 880, 880], (state.endsAt - Date.now()) / 1000);
 }
 

@@ -85,7 +85,12 @@ function Choices<T extends string | number>({
   label: string;
 }) {
   return (
-    <div className={`choices ${columns >= 3 ? 'centered' : ''}`} style={{ '--cols': columns } as React.CSSProperties} role="radiogroup" aria-label={label}>
+    <div
+      className={`choices ${columns >= 3 ? 'centered' : ''}`}
+      style={{ '--cols': columns } as React.CSSProperties}
+      role="radiogroup"
+      aria-label={label}
+    >
       {options.map(([v, title, sub]) => (
         <button
           key={v}
@@ -113,7 +118,10 @@ function PlanForm({
   onCancel?: () => void;
 }) {
   const [i, setI] = useState<Invoer>(initial ?? STANDAARD);
-  const set = <K extends keyof Invoer>(k: K) => (v: Invoer[K]) => setI({ ...i, [k]: v });
+  const set =
+    <K extends keyof Invoer>(k: K) =>
+    (v: Invoer[K]) =>
+      setI({ ...i, [k]: v });
 
   return (
     <div className="screen">
@@ -160,7 +168,12 @@ function PlanForm({
             columns={4}
             value={i.dagen}
             onChange={set('dagen')}
-            options={[[2, '2'], [3, '3'], [4, '4'], [5, '5']]}
+            options={[
+              [2, '2'],
+              [3, '3'],
+              [4, '4'],
+              [5, '5'],
+            ]}
           />
           <p className="small muted">{SPLIT_HINT[i.dagen]}</p>
           <h3>Hoeveel tijd per training?</h3>
@@ -169,7 +182,12 @@ function PlanForm({
             columns={4}
             value={i.tijd}
             onChange={set('tijd')}
-            options={[[30, '30', 'min'], [45, '45', 'min'], [60, '60', 'min'], [75, '75+', 'min']]}
+            options={[
+              [30, '30', 'min'],
+              [45, '45', 'min'],
+              [60, '60', 'min'],
+              [75, '75+', 'min'],
+            ]}
           />
           <h3>Welke apparatuur heb je?</h3>
           <Choices
@@ -248,7 +266,9 @@ function PlanView({
   const askRegenerate = () =>
     setConfirm({
       title: 'Nieuwe oefeningen kiezen met dezelfde antwoorden? Je gelogde workouts blijven bewaard.',
-      actions: [{ label: 'Opnieuw genereren', onClick: () => (regeneratePlan(), showToast('Nieuwe oefeningen gekozen')) }],
+      actions: [
+        { label: 'Opnieuw genereren', onClick: () => (regeneratePlan(), showToast('Nieuwe oefeningen gekozen')) },
+      ],
     });
 
   const newBlock = () => {
@@ -296,7 +316,10 @@ function PlanView({
               className={w.nr === week ? 'active' : ''}
               onClick={() => setWeek(w.nr)}
             >
-              <span>Week {w.nr}{weekDone(w.nr) ? ' ✓' : ''}</span>
+              <span>
+                Week {w.nr}
+                {weekDone(w.nr) ? ' ✓' : ''}
+              </span>
               <small>{w.label}</small>
             </button>
           ))}
@@ -309,13 +332,14 @@ function PlanView({
           )}
           {invoer.doel === 'vetverlies' && (
             <p className="small muted">
-              Vetverlies: cardio doe je na de krachttraining. Op rustdagen helpt 30–45 min wandelen. Het meeste resultaat
-              komt van een klein calorietekort en genoeg eiwit.
+              Vetverlies: cardio doe je na de krachttraining. Op rustdagen helpt 30–45 min wandelen. Het meeste
+              resultaat komt van een klein calorietekort en genoeg eiwit.
             </p>
           )}
           {invoer.apparatuur !== 'gym' && (
             <p className="small muted">
-              Lichaamsgewicht te makkelijk? Kies een zwaardere variant of zak langzamer, zodat de laatste reps zwaar zijn.
+              Lichaamsgewicht te makkelijk? Kies een zwaardere variant of zak langzamer, zodat de laatste reps zwaar
+              zijn.
             </p>
           )}
           <div className="progress plan-progress">

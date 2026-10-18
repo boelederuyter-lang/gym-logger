@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react';
 export interface Settings {
   barWeight: number; // empty barbell in kg
   weightStep: number; // smallest weight increment in kg
+  restBeep: boolean; // beep when the rest timer ends
+  lastBackupAt?: number;
+  backupSnoozedUntil?: number;
 }
 
-const DEFAULTS: Settings = { barWeight: 20, weightStep: 2.5 };
+const DEFAULTS: Settings = { barWeight: 20, weightStep: 2.5, restBeep: true };
 const KEY = 'gym-logger-settings';
 
 function load(): Settings {
@@ -18,6 +21,10 @@ function load(): Settings {
 
 const listeners = new Set<(s: Settings) => void>();
 let current = load();
+
+export function getSettings(): Settings {
+  return current;
+}
 
 export function setSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };

@@ -1667,3 +1667,16 @@ h3 {
 .link.center {
   align-self: center;
 }
+
+.backup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 2px var(--blue-soft),
+    var(--shadow);
+}
+.backup-card .row-buttons .btn {
+  flex: 1;
+}

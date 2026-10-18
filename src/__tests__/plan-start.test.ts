@@ -25,7 +25,10 @@ describe('koppeling met de bibliotheek', () => {
     const slugs = new Set(LIBRARY.map((l) => l.slug));
     for (const [id, slug] of Object.entries(BIBLIOTHEEK)) {
       expect(slugs.has(slug), `${id} → ${slug}`).toBe(true);
-      expect(OEFENINGEN.some((o) => o.id === id), id).toBe(true);
+      expect(
+        OEFENINGEN.some((o) => o.id === id),
+        id,
+      ).toBe(true);
     }
     const waarden = Object.values(BIBLIOTHEEK);
     expect(new Set(waarden).size).toBe(waarden.length);

@@ -1,5 +1,8 @@
 import { useRef } from 'react';
-import { exportData, importData } from '../db';
+import { importData } from '../db';
+import { shareBackup } from '../backup';
+import { relativeDay } from '../stats';
+import { showToast } from '../toast';
 import { Sheet } from '../components/Sheet';
 import { fmtWeight } from '../format';
 import { setSettings, useSettings } from '../settings';
@@ -12,20 +15,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function doExport() {
-    const json = await exportData();
-    const name = `gym-logger-${new Date().toISOString().slice(0, 10)}.json`;
-    const file = new File([json], name, { type: 'application/json' });
-    // On iPhone the share sheet lets you save to Files, AirDrop or mail it.
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] }).catch(() => {});
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (await shareBackup()) showToast('Backup gemaakt');
   }
 
   async function doImport(file: File) {
@@ -71,11 +61,22 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      <label className="switch-row">
+        <span>Piepje aan het einde van de rust</span>
+        <input
+          type="checkbox"
+          className="switch"
+          checked={settings.restBeep}
+          onChange={(e) => setSettings({ restBeep: e.target.checked })}
+        />
+      </label>
+
       <div className="field">
         <span>Backup</span>
         <p className="small muted">
-          Je data staat alleen op deze telefoon. Maak af en toe een backup, zeker voordat je de app van je beginscherm
-          verwijdert.
+          Je data staat alleen op deze telefoon. Bewaar de backup in iCloud Drive (Delen → Bewaar in Bestanden), dan
+          raak je niets kwijt als je de app verwijdert of een nieuwe telefoon krijgt. Laatste backup:{' '}
+          {relativeDay(settings.lastBackupAt, Date.now())}.
         </p>
         <div className="row-buttons">
           <button className="btn secondary" onClick={doExport}>

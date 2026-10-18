@@ -17,6 +17,7 @@ import { SettingsSheet } from './screens/SettingsSheet';
 import { TemplateEditor } from './screens/TemplateEditor';
 import { TemplatesScreen } from './screens/TemplatesScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
+import { useWakeLock } from './wakeLock';
 
 type Tab = 'home' | 'plan' | 'templates' | 'history' | 'exercises';
 
@@ -54,6 +55,7 @@ export function App() {
   }
 
   const active = useLiveQuery(() => db.workouts.filter((w) => !w.endedAt).first(), []);
+  useWakeLock(!!active);
 
   if (active && workoutOpen) {
     return withToast(

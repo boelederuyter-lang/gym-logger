@@ -6,6 +6,9 @@ import { fmtDuration, volume } from '../format';
 import { defaultsFor } from '../library/defaults';
 import { estimateMinutes, relativeDay, startOfWeek, weekDays, weekStreak } from '../stats';
 import { useNow } from '../useNow';
+import { backupDue, shareBackup, snoozeBackup } from '../backup';
+import { useSettings } from '../settings';
+import { showToast } from '../toast';
 import { weekSchema } from '../plan/generator';
 import { loggedDays, nextDay, startPlanDay } from '../plan/start';
 import { setWeek, usePlan } from '../plan/store';
@@ -23,6 +26,7 @@ const DAY_LABELS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplate, onOpenPlan }: Props) {
   const now = useNow(60_000);
   const plan = usePlan();
+  const settings = useSettings();
   const data = useLiveQuery(async () => {
     const finished = (await db.workouts.orderBy('startedAt').toArray()).filter((w) => w.endedAt);
     const weekStart = startOfWeek(Date.now());
@@ -91,6 +95,33 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
         </button>
       </header>
       <main className="content">
+        {!active && backupDue(settings, finished.length, now) && (
+          <section className="card backup-card">
+            <span className="eyebrow">Backup</span>
+            <strong className="block">
+              {settings.lastBackupAt
+                ? `Je laatste backup is van ${relativeDay(settings.lastBackupAt, now)}.`
+                : 'Je hebt nog geen backup gemaakt.'}
+            </strong>
+            <span className="small muted">
+              Je workouts staan alleen op deze telefoon. Bewaar een backup in iCloud Drive via Delen → Bewaar in
+              Bestanden.
+            </span>
+            <div className="row-buttons">
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  if (await shareBackup()) showToast('Backup gemaakt');
+                }}
+              >
+                Backup maken
+              </button>
+              <button className="btn ghost" onClick={() => snoozeBackup()}>
+                Later
+              </button>
+            </div>
+          </section>
+        )}
         {active && (
           <button className="card active-card" onClick={onOpenWorkout}>
             <span className="grow">
