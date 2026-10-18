@@ -33,6 +33,7 @@ import { useSettings } from '../settings';
 import { showToast } from '../toast';
 import { useNow } from '../useNow';
 import { warmupSets } from '../warmup';
+import { platesPerSide } from '../plates';
 
 interface Props {
   workout: Workout;
@@ -156,6 +157,9 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
     }
   }
 
+  // The set you're about to do gets quick −/+ buttons.
+  const nextOpen = sets.find((s) => !s.done && !s.warmup);
+
   async function addSet() {
     const last = sets[sets.length - 1];
     const p = prev[n];
@@ -230,7 +234,12 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
         <Thumb exercise={exercise} onClick={() => setOverlay('info')} />
         <div className="grow">
           <h3>{exercise?.name ?? '…'}</h3>
-          <span className="small muted">Rust {fmtRest(rest)}</span>
+          <span className="small muted">
+            Rust {fmtRest(rest)}
+            {!!workout.progress?.[exerciseId] && (
+              <span className="progress-up"> · ↑ {fmtWeight(workout.progress[exerciseId])} kg t.o.v. vorige keer</span>
+            )}
+          </span>
         </div>
         <button className="icon-btn" onClick={() => setOverlay('menu')} aria-label="Menu van oefening">
           <Icon name="more" />
@@ -253,6 +262,16 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
           onToggle={() => toggle(s, i)}
           onMenu={() => setSetMenu(s)}
           onEdited={() => s.done && recompute()}
+          quick={
+            s.id === nextOpen?.id
+              ? {
+                  step: settings.weightStep,
+                  weighted: exercise?.equipment !== 'bodyweight',
+                  bar: exercise?.equipment === 'barbell' ? settings.barWeight : undefined,
+                  prev: workIndex[i] >= 0 ? prev[workIndex[i]] : undefined,
+                }
+              : undefined
+          }
         />
       ))}
       <button className="btn ghost block" onClick={addSet}>
@@ -319,6 +338,7 @@ function SetRow({
   onToggle,
   onMenu,
   onEdited,
+  quick,
 }: {
   set: WorkoutSet;
   label: string;
@@ -326,6 +346,7 @@ function SetRow({
   onToggle: () => void;
   onMenu: () => void;
   onEdited: () => void;
+  quick?: { step: number; weighted: boolean; bar?: number; prev?: WorkoutSet };
 }) {
   const [weight, setWeight] = useNumberField(set.weight);
   const [reps, setReps] = useNumberField(set.reps);
@@ -373,9 +394,68 @@ function SetRow({
           {set.rpe != null && <span className="effort-tag">RPE {fmtWeight(set.rpe)}</span>}
         </span>
       )}
+      {quick && <QuickAdjust set={set} {...quick} />}
     </div>
   );
 }
+
+/** Big −/+ buttons for the next set, so you don't need the keyboard; plates per side for barbells. */
+function QuickAdjust({
+  set,
+  step,
+  weighted,
+  bar,
+  prev,
+}: {
+  set: WorkoutSet;
+  step: number;
+  weighted: boolean;
+  bar?: number;
+  prev?: WorkoutSet;
+}) {
+  const weight = set.weight ?? prev?.weight ?? 0;
+  const reps = set.reps ?? prev?.reps ?? 0;
+  const change = (patch: Partial<WorkoutSet>) => db.sets.update(set.id, patch);
+  const plates = bar != null ? platesPerSide(weight, bar) : null;
+  return (
+    <div className="quick-adjust">
+      {weighted && (
+        <div className="quick-group">
+          <button
+            onClick={() => change({ weight: Math.max(0, round2(weight - step)) })}
+            aria-label={`${fmtWeight(step)} kg minder`}
+          >
+            −
+          </button>
+          <span className="num">{fmtWeight(weight)} kg</span>
+          <button onClick={() => change({ weight: round2(weight + step) })} aria-label={`${fmtWeight(step)} kg meer`}>
+            +
+          </button>
+        </div>
+      )}
+      <div className="quick-group">
+        <button onClick={() => change({ reps: Math.max(0, reps - 1) })} aria-label="1 rep minder">
+          −
+        </button>
+        <span className="num">{reps} reps</span>
+        <button onClick={() => change({ reps: reps + 1 })} aria-label="1 rep meer">
+          +
+        </button>
+      </div>
+      {bar != null && (
+        <span className="plates small">
+          {plates
+            ? `Per kant: ${plates.plates.map(fmtWeight).join(' + ')}${plates.rest ? ` (+${fmtWeight(plates.rest)} kg)` : ''}`
+            : weight > 0
+              ? `Lege stang (${fmtWeight(bar)} kg)`
+              : ''}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Text state for a numeric input that follows outside changes (e.g. "copy previous"). */
 function useNumberField(value: number | null): [string, (v: string) => void] {

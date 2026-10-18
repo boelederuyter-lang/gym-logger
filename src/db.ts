@@ -2,6 +2,8 @@ import Dexie, { type EntityTable } from 'dexie';
 import { LEGACY_MUSCLES, LEGACY_NAMES, LIBRARY, type Equipment } from './library/exercises';
 import { defaultsFor } from './library/defaults';
 import { computePrs } from './prs';
+import { parseRepRange, progressionIncrement, shouldProgress } from './progression';
+import { getSettings } from './settings';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
 
@@ -44,6 +46,7 @@ export interface Workout {
   rest?: Record<number, number>; // rest seconds per exercise
   note?: string;
   plan?: PlanRef; // set when the workout was started from the training schema
+  progress?: Record<number, number>; // kg added per exercise compared to last time (double progression)
 }
 
 /** Which day of the training schema a workout belongs to. */
@@ -169,9 +172,16 @@ export async function startWorkout(template?: Template, extraExercises: Exercise
       exerciseIds: items.map((i) => i.exerciseId),
       rest,
     } as Workout);
+    const progress: Record<number, number> = {};
     for (const item of items) {
-      await addPlannedSets(workoutId, item.exerciseId, item.sets, parseInt(item.reps, 10) || null);
+      const ex = await db.exercises.get(item.exerciseId);
+      const range = parseRepRange(item.reps);
+      const added = await addPlannedSets(workoutId, item.exerciseId, item.sets, range?.[0] ?? null, {
+        progression: ex && range ? { range, increment: progressionIncrement(ex, getSettings().weightStep) } : undefined,
+      });
+      if (added) progress[item.exerciseId] = added;
     }
+    if (Object.keys(progress).length) await db.workouts.update(workoutId, { progress });
     if (extraExercises.length) await addExercisesToWorkout((await db.workouts.get(workoutId))!, extraExercises);
     return workoutId;
   });
@@ -180,9 +190,13 @@ export async function startWorkout(template?: Template, extraExercises: Exercise
 export interface PlanTarget {
   repRange?: [number, number]; // prefilled reps are kept within this range
   weightDelta?: number; // added to last time's weight (schema progression)
+  progression?: { range: [number, number]; increment: number }; // double progression for programs
 }
 
-/** Adds sets for an exercise, prefilled with what you did last time. */
+/**
+ * Adds sets for an exercise, prefilled with what you did last time. With `progression`, the weight
+ * goes up when last time every set reached the top of the rep range. Returns the kg added.
+ */
 export async function addPlannedSets(
   workoutId: number,
   exerciseId: number,
@@ -194,18 +208,22 @@ export async function addPlannedSets(
   const existing = await db.sets.where({ workoutId, exerciseId }).toArray();
   const work = existing.filter((s) => !s.warmup).length;
   const maxOrder = Math.max(-1, ...existing.map((s) => s.order));
+  const pg = target.progression;
+  const up = !!pg && work === 0 && shouldProgress(prev, pg.range, pg.increment);
   const rows = Array.from({ length: count }, (_, i) => {
     const p = prev[work + i] ?? prev[prev.length - 1];
+    const delta = up ? pg!.increment : (target.weightDelta ?? 0);
     return {
       workoutId,
       exerciseId,
       order: maxOrder + 1 + i,
-      weight: p?.weight != null ? Math.max(0, p.weight + (target.weightDelta ?? 0)) : null,
-      reps: clampReps(p?.reps ?? targetReps, target.repRange),
+      weight: p?.weight != null ? Math.max(0, p.weight + delta) : null,
+      reps: up ? pg!.range[0] : clampReps(p?.reps ?? targetReps, target.repRange),
       done: false,
     } as WorkoutSet;
   });
   await db.sets.bulkAdd(rows);
+  return up ? pg!.increment : 0;
 }
 
 function clampReps(reps: number | null, range?: [number, number]): number | null {
@@ -220,10 +238,15 @@ export async function addExercisesToWorkout(workout: Workout, exercises: Exercis
   const rest = { ...workout.rest };
   for (const ex of fresh) rest[ex.id] = defaultsFor(ex).rest;
   await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, ...fresh.map((x) => x.id)], rest });
+  const progress = { ...workout.progress };
   for (const ex of fresh) {
     const d = defaultsFor(ex);
-    await addPlannedSets(workout.id, ex.id, d.sets, d.reps);
+    const added = await addPlannedSets(workout.id, ex.id, d.sets, d.reps, {
+      progression: { range: [d.reps, d.reps], increment: progressionIncrement(ex, getSettings().weightStep) },
+    });
+    if (added) progress[ex.id] = added;
   }
+  if (Object.keys(progress).length) await db.workouts.update(workout.id, { progress });
 }
 
 export async function removeExerciseFromWorkout(workout: Workout, exerciseId: number) {
