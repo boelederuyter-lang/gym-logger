@@ -4,6 +4,7 @@ import { defaultsFor } from './library/defaults';
 import { computePrs } from './prs';
 import { parseRepRange, progressionIncrement, shouldProgress } from './progression';
 import { getSettings } from './settings';
+import { cleanLinks } from './supersets';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
 
@@ -27,6 +28,7 @@ export interface TemplateItem {
   sets: number;
   reps: string; // free text, e.g. "8" or "8-12"
   restSeconds?: number;
+  supersetNext?: boolean; // done as a superset with the next item
 }
 
 export interface Template {
@@ -47,6 +49,7 @@ export interface Workout {
   note?: string;
   plan?: PlanRef; // set when the workout was started from the training schema
   progress?: Record<number, number>; // kg added per exercise compared to last time (double progression)
+  supersets?: number[]; // exercises done as a superset with the next one in exerciseIds
 }
 
 /** Which day of the training schema a workout belongs to. */
@@ -171,6 +174,7 @@ export async function startWorkout(template?: Template, extraExercises: Exercise
       startedAt: Date.now(),
       exerciseIds: items.map((i) => i.exerciseId),
       rest,
+      supersets: items.filter((i) => i.supersetNext).map((i) => i.exerciseId),
     } as Workout);
     const progress: Record<number, number> = {};
     for (const item of items) {
@@ -251,7 +255,8 @@ export async function addExercisesToWorkout(workout: Workout, exercises: Exercis
 
 export async function removeExerciseFromWorkout(workout: Workout, exerciseId: number) {
   await db.transaction('rw', db.workouts, db.sets, async () => {
-    await db.workouts.update(workout.id, { exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId) });
+    const exerciseIds = workout.exerciseIds.filter((id) => id !== exerciseId);
+    await db.workouts.update(workout.id, { exerciseIds, supersets: cleanLinks(exerciseIds, workout.supersets) });
     await db.sets.where({ workoutId: workout.id, exerciseId }).delete();
   });
 }
@@ -334,7 +339,8 @@ export async function finishEdit(workoutId: number) {
       .filter((s) => !s.done)
       .delete();
     const used = new Set((await db.sets.where('workoutId').equals(workoutId).toArray()).map((s) => s.exerciseId));
-    await db.workouts.update(workoutId, { exerciseIds: w.exerciseIds.filter((id) => used.has(id)) });
+    const exerciseIds = w.exerciseIds.filter((id) => used.has(id));
+    await db.workouts.update(workoutId, { exerciseIds, supersets: cleanLinks(exerciseIds, w.supersets) });
   });
   for (const exId of touched) await recomputePrs(workoutId, exId);
   await recomputeLaterPrs(w.startedAt, touched);
@@ -384,6 +390,10 @@ export async function finishWorkout(workoutId: number) {
     await db.workouts.update(workoutId, {
       endedAt: Date.now(),
       exerciseIds: w.exerciseIds.filter((id) => used.has(id)),
+      supersets: cleanLinks(
+        w.exerciseIds.filter((id) => used.has(id)),
+        w.supersets,
+      ),
     });
   });
 }

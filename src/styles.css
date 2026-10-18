@@ -1,6 +1,6 @@
 /* =========================================================
    Liquid glass theme
-   red = action & timer · green = done · gold = PR & failure · blue = notes
+   red = action & timer · green = done · gold = PR & failure · blue = notes & supersets
    ========================================================= */
 
 :root {
@@ -1692,20 +1692,24 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: 6px 8px;
   padding: 6px 2px 4px;
 }
 .quick-group {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 4px;
   border-radius: 14px;
   background: var(--field);
   border: 1px solid var(--field-border);
   padding: 3px;
 }
 .quick-group button {
-  width: 42px;
+  flex-shrink: 0;
+  width: 40px;
   height: 40px;
   border-radius: 11px;
   font-size: 24px;
@@ -1717,7 +1721,8 @@ h3 {
   color: var(--red);
 }
 .quick-group .num {
-  min-width: 64px;
+  min-width: 0;
+  white-space: nowrap;
   text-align: center;
   font-size: 18px;
 }
@@ -1727,4 +1732,38 @@ h3 {
 }
 .center {
   text-align: center;
+}
+
+/* ---------- supersets ---------- */
+
+.card.superset {
+  box-shadow:
+    inset 4px 0 0 var(--blue),
+    inset 0 1px 0 var(--glass-highlight),
+    var(--shadow);
+}
+.superset-tag {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+.link-btn {
+  align-self: center;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+  background: var(--field);
+  border: 1px dashed var(--field-border);
+}
+.link-btn.on {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: 1px solid var(--blue);
 }

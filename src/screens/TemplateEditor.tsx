@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { db, type Template, type TemplateItem } from '../db';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { ExercisePicker } from '../components/ExercisePicker';
@@ -85,57 +85,67 @@ export function TemplateEditor({ templateId, onClose }: Props) {
           const ex = byId.get(it.exerciseId);
           const rest = it.restSeconds ?? (ex ? defaultsFor(ex).rest : 90);
           return (
-            <div key={`${it.exerciseId}-${i}`} className="card template-item">
-              <div className="card-header">
-                <Thumb exercise={ex} onClick={() => setInfo(it.exerciseId)} />
-                <h3 className="grow">{ex?.name ?? '…'}</h3>
-                <div className="inline">
-                  <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Omhoog">
-                    ↑
-                  </button>
-                  <button
-                    className="icon-btn"
-                    onClick={() => move(i, 1)}
-                    disabled={i === items.length - 1}
-                    aria-label="Omlaag"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    className="icon-btn"
-                    onClick={() => setItems(items.filter((_, j) => j !== i))}
-                    aria-label="Verwijderen"
-                  >
-                    ✕
-                  </button>
+            <Fragment key={`${it.exerciseId}-${i}`}>
+              <div className={`card template-item ${it.supersetNext || items[i - 1]?.supersetNext ? 'superset' : ''}`}>
+                <div className="card-header">
+                  <Thumb exercise={ex} onClick={() => setInfo(it.exerciseId)} />
+                  <h3 className="grow">{ex?.name ?? '…'}</h3>
+                  <div className="inline">
+                    <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Omhoog">
+                      ↑
+                    </button>
+                    <button
+                      className="icon-btn"
+                      onClick={() => move(i, 1)}
+                      disabled={i === items.length - 1}
+                      aria-label="Omlaag"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      className="icon-btn"
+                      onClick={() => setItems(items.filter((_, j) => j !== i))}
+                      aria-label="Verwijderen"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <NoteBlock note={ex?.note} />
+                <div className="item-fields">
+                  <div className="stepper">
+                    <span className="small muted">Sets</span>
+                    <button onClick={() => update(i, { sets: Math.max(1, it.sets - 1) })}>−</button>
+                    <strong>{it.sets}</strong>
+                    <button onClick={() => update(i, { sets: Math.min(20, it.sets + 1) })}>+</button>
+                  </div>
+                  <label className="reps-field">
+                    <span className="small muted">Reps</span>
+                    <input value={it.reps} onChange={(e) => update(i, { reps: e.target.value })} placeholder="8-12" />
+                  </label>
+                  <label className="reps-field">
+                    <span className="small muted">Rust</span>
+                    <select value={rest} onChange={(e) => update(i, { restSeconds: Number(e.target.value) })}>
+                      {[...new Set([...REST_OPTIONS, rest])]
+                        .sort((a, b) => a - b)
+                        .map((s) => (
+                          <option key={s} value={s}>
+                            {fmtRest(s)}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
                 </div>
               </div>
-              <NoteBlock note={ex?.note} />
-              <div className="item-fields">
-                <div className="stepper">
-                  <span className="small muted">Sets</span>
-                  <button onClick={() => update(i, { sets: Math.max(1, it.sets - 1) })}>−</button>
-                  <strong>{it.sets}</strong>
-                  <button onClick={() => update(i, { sets: Math.min(20, it.sets + 1) })}>+</button>
-                </div>
-                <label className="reps-field">
-                  <span className="small muted">Reps</span>
-                  <input value={it.reps} onChange={(e) => update(i, { reps: e.target.value })} placeholder="8-12" />
-                </label>
-                <label className="reps-field">
-                  <span className="small muted">Rust</span>
-                  <select value={rest} onChange={(e) => update(i, { restSeconds: Number(e.target.value) })}>
-                    {[...new Set([...REST_OPTIONS, rest])]
-                      .sort((a, b) => a - b)
-                      .map((s) => (
-                        <option key={s} value={s}>
-                          {fmtRest(s)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-            </div>
+              {i < items.length - 1 && (
+                <button
+                  className={`link-btn ${it.supersetNext ? 'on' : ''}`}
+                  onClick={() => update(i, { supersetNext: !it.supersetNext })}
+                >
+                  {it.supersetNext ? '🔗 Superset met volgende' : '+ Superset met volgende'}
+                </button>
+              )}
+            </Fragment>
           );
         })}
 

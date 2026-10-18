@@ -35,6 +35,7 @@ import { showToast } from '../toast';
 import { useNow } from '../useNow';
 import { warmupSets } from '../warmup';
 import { platesPerSide } from '../plates';
+import { supersetInfo, toggleLink } from '../supersets';
 
 interface Props {
   workout: Workout;
@@ -176,6 +177,7 @@ function ExerciseCard({
   const settings = useSettings();
   const rest = restFor(workout, exercise);
   const recompute = () => recomputePrs(workout.id, exerciseId);
+  const superset = supersetInfo(workout.exerciseIds, workout.supersets).get(exerciseId);
 
   // Work sets are numbered 1, 2, 3; warm-ups show "W" and don't count.
   const labels: string[] = [];
@@ -228,7 +230,14 @@ function ExerciseCard({
       await recomputePrs(workout.id, exerciseId);
       return;
     }
-    startRest(set.warmup ? Math.min(60, rest) : rest);
+    if (superset && !superset.last && !set.warmup) {
+      // In a superset you go straight to the next exercise; rest comes after the last one.
+      const nextId = workout.exerciseIds[workout.exerciseIds.indexOf(exerciseId) + 1];
+      const next = await db.exercises.get(nextId);
+      showToast(`Superset ${superset.label}: door naar ${next?.name ?? 'de volgende oefening'}`);
+    } else {
+      startRest(set.warmup ? Math.min(60, rest) : rest);
+    }
     const fresh = await recomputePrs(workout.id, exerciseId);
     const mine = fresh.find((s) => s.id === set.id);
     if (mine?.pr && exercise) showPrBanner({ exercise: exercise.name, ...describePr(mine, mine.pr) });
@@ -257,8 +266,18 @@ function ExerciseCard({
     }
   }
 
+  const isLast = workout.exerciseIds.indexOf(exerciseId) === workout.exerciseIds.length - 1;
+  const linked = workout.supersets?.includes(exerciseId) ?? false;
   const menu: Action[] = [
     { label: 'Uitvoering bekijken', onClick: () => setOverlay('info') },
+    ...(isLast && !linked
+      ? []
+      : [
+          {
+            label: linked ? 'Superset met volgende opheffen' : 'Superset met volgende oefening',
+            onClick: () => db.workouts.update(workout.id, { supersets: toggleLink(workout.supersets, exerciseId) }),
+          },
+        ]),
     { label: 'Warming-up sets toevoegen', onClick: addWarmups },
     { label: exercise?.note ? 'Notitie bewerken' : 'Notitie toevoegen', onClick: () => setOverlay('note') },
     { label: `Rusttijd: ${fmtRest(rest)}`, onClick: () => setOverlay('rest') },
@@ -267,7 +286,13 @@ function ExerciseCard({
   ];
 
   return (
-    <section className="card exercise-card">
+    <section className={`card exercise-card ${superset ? 'superset' : ''}`}>
+      {superset && (
+        <span className="superset-tag">
+          Superset {superset.label} · {superset.position}/{superset.size}
+          {superset.last ? ' · daarna rust' : ' · geen rust'}
+        </span>
+      )}
       <div className="card-header">
         <Thumb exercise={exercise} onClick={() => setOverlay('info')} />
         <div className="grow">
