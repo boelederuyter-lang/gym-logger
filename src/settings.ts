@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 export interface Settings {
   barWeight: number; // empty barbell in kg
   weightStep: number; // smallest weight increment in kg
-  voiceSpeak: boolean; // speak a confirmation after a voice command
 }
 
-const DEFAULTS: Settings = { barWeight: 20, weightStep: 2.5, voiceSpeak: false };
+const DEFAULTS: Settings = { barWeight: 20, weightStep: 2.5 };
 const KEY = 'gym-logger-settings';
 
 function load(): Settings {
