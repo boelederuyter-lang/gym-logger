@@ -39,6 +39,11 @@ export function App() {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [summary, setSummary] = useState<number | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<number | null>(null);
+  const editingWorkout = useLiveQuery(
+    () => (editingWorkoutId == null ? undefined : db.workouts.get(editingWorkoutId)),
+    [editingWorkoutId],
+  );
 
   useEffect(() => {
     if (!location.hash) return;
@@ -56,6 +61,20 @@ export function App() {
 
   const active = useLiveQuery(() => db.workouts.filter((w) => !w.endedAt).first(), []);
   useWakeLock(!!active);
+
+  if (editingWorkout) {
+    return withToast(
+      <WorkoutScreen
+        editing
+        workout={editingWorkout}
+        onMinimize={() => setEditingWorkoutId(null)}
+        onFinished={(id) => {
+          setEditingWorkoutId(null);
+          setDetailId(id);
+        }}
+      />,
+    );
+  }
 
   if (active && workoutOpen) {
     return withToast(
@@ -112,7 +131,16 @@ export function App() {
         </nav>
       </div>
 
-      {detailId != null && <WorkoutDetail workoutId={detailId} onClose={() => setDetailId(null)} />}
+      {detailId != null && (
+        <WorkoutDetail
+          workoutId={detailId}
+          onClose={() => setDetailId(null)}
+          onEdit={() => {
+            setEditingWorkoutId(detailId);
+            setDetailId(null);
+          }}
+        />
+      )}
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
       {shared && getPlan() && (
         <ActionSheet

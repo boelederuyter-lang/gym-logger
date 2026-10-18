@@ -1725,3 +1725,6 @@ h3 {
   flex-basis: 100%;
   color: var(--muted);
 }
+.center {
+  text-align: center;
+}

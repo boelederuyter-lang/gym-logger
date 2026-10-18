@@ -148,7 +148,15 @@ function WorkoutList({ onOpen }: { onOpen: (id: number) => void }) {
   );
 }
 
-export function WorkoutDetail({ workoutId, onClose }: { workoutId: number; onClose: () => void }) {
+export function WorkoutDetail({
+  workoutId,
+  onClose,
+  onEdit,
+}: {
+  workoutId: number;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
   const data = useLiveQuery(async () => {
     const w = await db.workouts.get(workoutId);
     if (!w) return null;
@@ -169,7 +177,17 @@ export function WorkoutDetail({ workoutId, onClose }: { workoutId: number; onClo
   }
 
   return (
-    <Sheet title={w.name} onClose={onClose}>
+    <Sheet
+      title={w.name}
+      onClose={onClose}
+      action={
+        w.endedAt ? (
+          <button className="link strong" onClick={onEdit}>
+            Bewerken
+          </button>
+        ) : undefined
+      }
+    >
       <p className="muted">
         {new Date(w.startedAt).toLocaleString('nl-NL', { dateStyle: 'full', timeStyle: 'short' })}
         <br />

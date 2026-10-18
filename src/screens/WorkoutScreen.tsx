@@ -7,6 +7,7 @@ import {
   deleteSet,
   deleteWorkout,
   duplicateSet,
+  finishEdit,
   finishWorkout,
   previousSets,
   recomputePrs,
@@ -39,9 +40,11 @@ interface Props {
   workout: Workout;
   onMinimize: () => void;
   onFinished: (workoutId: number) => void;
+  /** Editing a finished workout: no timer, no rest, "Klaar" saves the changes. */
+  editing?: boolean;
 }
 
-export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
+export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false }: Props) {
   const now = useNow();
   const [picking, setPicking] = useState(false);
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id).toArray(), [workout.id]);
@@ -49,6 +52,14 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   const doneCount = sets?.filter((s) => s.done).length ?? 0;
 
   async function finish() {
+    if (editing) {
+      const open = (sets ?? []).filter((s) => !s.done).length;
+      if (open > 0 && !confirm(`${open} set(s) zijn niet afgevinkt en worden niet bewaard. Opslaan?`)) return;
+      await finishEdit(workout.id);
+      showToast('Workout bijgewerkt');
+      onFinished(workout.id);
+      return;
+    }
     const all = sets ?? [];
     const done = all.filter((s) => s.done);
     if (done.length === 0) {
@@ -74,19 +85,27 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
   return (
     <div className="screen workout">
       <header className="topbar">
-        <button className="icon-btn" onClick={onMinimize} aria-label="Minimaliseren">
-          <Icon name="down" />
-        </button>
+        {editing ? (
+          <span />
+        ) : (
+          <button className="icon-btn" onClick={onMinimize} aria-label="Minimaliseren">
+            <Icon name="down" />
+          </button>
+        )}
         <div className="topbar-title">
           <input
             className="title-input"
             value={workout.name}
             onChange={(e) => db.workouts.update(workout.id, { name: e.target.value })}
           />
-          <span className="small muted">{fmtDuration(now - workout.startedAt)}</span>
+          <span className="small muted">
+            {editing
+              ? `Bewerken · ${new Date(workout.startedAt).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}`
+              : fmtDuration(now - workout.startedAt)}
+          </span>
         </div>
         <button className="btn primary small-btn" onClick={finish}>
-          Klaar
+          {editing ? 'Opslaan' : 'Klaar'}
         </button>
         <div className="progress" aria-label={`${doneCount} van ${totalCount} sets gedaan`}>
           <div className="progress-fill" style={{ width: `${totalCount ? (doneCount / totalCount) * 100 : 0}%` }} />
@@ -103,15 +122,20 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
             key={exId}
             workout={workout}
             exerciseId={exId}
+            editing={editing}
             sets={(sets ?? []).filter((s) => s.exerciseId === exId).sort((a, b) => a.order - b.order)}
           />
         ))}
         <button className="btn secondary block" onClick={() => setPicking(true)}>
           + Oefening toevoegen
         </button>
-        <button className="btn danger-text block" onClick={cancel}>
-          Workout annuleren
-        </button>
+        {editing ? (
+          <p className="small muted center">Wijzigingen worden direct bewaard. Alleen afgevinkte sets tellen mee.</p>
+        ) : (
+          <button className="btn danger-text block" onClick={cancel}>
+            Workout annuleren
+          </button>
+        )}
       </main>
 
       <div className="workout-bottom">
@@ -134,7 +158,17 @@ export function WorkoutScreen({ workout, onMinimize, onFinished }: Props) {
 
 type Overlay = 'menu' | 'info' | 'note' | 'rest' | 'progress' | null;
 
-function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exerciseId: number; sets: WorkoutSet[] }) {
+function ExerciseCard({
+  workout,
+  exerciseId,
+  sets,
+  editing,
+}: {
+  workout: Workout;
+  exerciseId: number;
+  sets: WorkoutSet[];
+  editing: boolean;
+}) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
   const prev = useLiveQuery(() => previousSets(exerciseId, workout.id), [exerciseId, workout.id]) ?? [];
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -189,6 +223,10 @@ function ExerciseCard({ workout, exerciseId, sets }: { workout: Workout; exercis
       // Carry the weight down to the following work sets you haven't filled in yet.
       const later = sets.slice(index + 1).filter((s) => !s.done && !s.warmup && s.weight == null);
       await Promise.all(later.map((s) => db.sets.update(s.id, { weight })));
+    }
+    if (editing) {
+      await recomputePrs(workout.id, exerciseId);
+      return;
     }
     startRest(set.warmup ? Math.min(60, rest) : rest);
     const fresh = await recomputePrs(workout.id, exerciseId);

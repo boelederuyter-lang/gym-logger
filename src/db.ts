@@ -290,14 +290,18 @@ export async function deleteSet(set: WorkoutSet): Promise<() => Promise<void>> {
  * Returns the sets that just became a PR.
  */
 export async function recomputePrs(workoutId: number, exerciseId: number): Promise<WorkoutSet[]> {
+  const self = await db.workouts.get(workoutId);
   const others = await db.sets
     .where('exerciseId')
     .equals(exerciseId)
     .filter((s) => s.done && !s.warmup && s.workoutId !== workoutId)
     .toArray();
   const workouts = await db.workouts.bulkGet([...new Set(others.map((s) => s.workoutId))]);
-  const finished = new Set(workouts.filter((w) => w?.endedAt).map((w) => w!.id));
-  const history = others.filter((s) => finished.has(s.workoutId));
+  // Only workouts that were finished before this one count as history.
+  const earlier = new Set(
+    workouts.filter((w) => w?.endedAt && (!self || w.startedAt < self.startedAt)).map((w) => w!.id),
+  );
+  const history = others.filter((s) => earlier.has(s.workoutId));
 
   const sets = (await db.sets.where({ workoutId, exerciseId }).toArray()).sort((a, b) => a.order - b.order);
   const prs = computePrs(sets, history);
@@ -308,6 +312,32 @@ export async function recomputePrs(workoutId: number, exerciseId: number): Promi
     if (prs[i] && !sets[i].pr) fresh.push({ ...sets[i], pr: prs[i] });
   }
   return fresh;
+}
+
+/** Recomputes PRs of finished workouts after `startedAt` that contain these exercises, oldest first. */
+export async function recomputeLaterPrs(startedAt: number, exerciseIds: number[]) {
+  const later = (await db.workouts.where('startedAt').above(startedAt).sortBy('startedAt')).filter((w) => w.endedAt);
+  for (const w of later) {
+    for (const exId of exerciseIds) if (w.exerciseIds.includes(exId)) await recomputePrs(w.id, exId);
+  }
+}
+
+/** Ends editing a finished workout: drops sets that aren't ticked and refreshes all affected PRs. */
+export async function finishEdit(workoutId: number) {
+  const w = await db.workouts.get(workoutId);
+  if (!w) return;
+  const touched = [...w.exerciseIds];
+  await db.transaction('rw', db.workouts, db.sets, async () => {
+    await db.sets
+      .where('workoutId')
+      .equals(workoutId)
+      .filter((s) => !s.done)
+      .delete();
+    const used = new Set((await db.sets.where('workoutId').equals(workoutId).toArray()).map((s) => s.exerciseId));
+    await db.workouts.update(workoutId, { exerciseIds: w.exerciseIds.filter((id) => used.has(id)) });
+  });
+  for (const exId of touched) await recomputePrs(workoutId, exId);
+  await recomputeLaterPrs(w.startedAt, touched);
 }
 
 /** Inserts warm-up sets before the first work set of an exercise. */
@@ -359,10 +389,13 @@ export async function finishWorkout(workoutId: number) {
 }
 
 export async function deleteWorkout(workoutId: number) {
+  const w = await db.workouts.get(workoutId);
   await db.transaction('rw', db.workouts, db.sets, async () => {
     await db.sets.where('workoutId').equals(workoutId).delete();
     await db.workouts.delete(workoutId);
   });
+  // Records set after this workout may have depended on it.
+  if (w?.endedAt) await recomputeLaterPrs(w.startedAt, w.exerciseIds);
 }
 
 export async function addToTemplate(templateId: number, exercises: Exercise[]) {
