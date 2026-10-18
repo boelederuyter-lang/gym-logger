@@ -925,7 +925,7 @@ h3 {
 }
 .tabbar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: 6px;
   border-radius: 28px;
   background: var(--glass-strong);
@@ -1766,4 +1766,19 @@ h3 {
   color: var(--blue);
   background: var(--blue-soft);
   border: 1px solid var(--blue);
+}
+
+/* ---------- train tab (schema + programs) ---------- */
+
+.train-switch {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 16px 0;
+}
+.train .screen {
+  min-height: auto;
+  padding-top: 0;
+}
+.app .train .screen {
+  padding-bottom: 0;
 }

@@ -4,15 +4,18 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 
 ## Wat kan hij
 
-- **Programma's**: vaste trainingen met oefeningen, sets, reps en rusttijd per oefening.
+- **Trainen**: één tabblad met je gegenereerde **Schema** en je eigen **Programma's** (vaste trainingen met oefeningen, sets, reps, rusttijd en supersets).
 - **Losse workouts**: start leeg en voeg onderweg oefeningen toe (meerdere tegelijk).
 - **Vorige keer**: per set zie je wat je de vorige keer deed, alvast ingevuld.
-- **Afvinken**: tik ✓ en de rusttimer start. Het gewicht schuift door naar de volgende sets.
+- **Progressie**: haalde je vorige keer in elke set de bovenkant van je reps, dan staat er 2,5 kg (benen met stang: 5 kg) meer klaar.
+- **Afvinken**: tik ✓ en de rusttimer start. Het gewicht schuift door naar de volgende sets. Onder de volgende set staan grote −/+ knoppen en voor stangoefeningen de schijven per kant.
+- **Supersets**: koppel een oefening aan de volgende; de rust start pas na de laatste.
+- **Scherm blijft aan** tijdens een workout, en het piepje aan het einde van de rust kun je uitzetten.
 - **PR's**: zwaarste gewicht, beste geschatte 1RM en meeste reps, met een gouden banner en een trofee op de set.
 - **Warming-up sets**: automatisch berekend vanuit je werkgewicht.
-- **Voortgang**: grafieken per oefening (1RM, zwaarste gewicht, volume of reps) met periodes en een tabel.
+- **Voortgang**: grafieken per oefening (1RM, zwaarste gewicht, volume of reps) met periodes en een tabel. Afgeronde workouts kun je achteraf bewerken.
 - **Oefeningenbibliotheek**: 73 oefeningen met een geanimeerd poppetje, uitvoeringstip, aliassen en je eigen notitie.
-- **Offline**: alles staat lokaal op je telefoon. Export en import via ⚙︎ voor backups.
+- **Offline**: alles staat lokaal op je telefoon. Eén keer per week vraagt de app om een backup (bewaar hem in iCloud Drive); export en import staan ook onder ⚙︎.
 
 ## Op je iPhone zetten
 
@@ -24,7 +27,7 @@ Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
 ## Trainingsschema
 
-Tabblad **Schema**: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij vetverlies komt er na elke training een cardioblok bij.
+Tabblad **Trainen → Schema**: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij vetverlies komt er na elke training een cardioblok bij.
 
 - **Start training** bij een dag opent een gelogde workout met de sets, reps en rust van die week. In week 3 staat het gewicht al +2,5 kg (boven) of +5 kg (onder) hoger klaar, in de deload weer terug.
 - Afgeronde schema-workouts tellen automatisch als gedaan; het startscherm zet de volgende schema-training klaar.

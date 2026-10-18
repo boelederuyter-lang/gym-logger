@@ -9,29 +9,34 @@ import { Toast } from './components/Toast';
 import { ExercisesScreen } from './screens/ExercisesScreen';
 import { HistoryScreen, WorkoutDetail } from './screens/HistoryScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import { PlanScreen } from './screens/PlanScreen';
 import { ActionSheet } from './components/ActionSheet';
 import { createPlan, getPlan, parseShareHash } from './plan/store';
 import { showToast } from './toast';
 import { SettingsSheet } from './screens/SettingsSheet';
 import { TemplateEditor } from './screens/TemplateEditor';
-import { TemplatesScreen } from './screens/TemplatesScreen';
+import { initialTrainView, TrainScreen, type TrainView } from './screens/TrainScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
 import { useWakeLock } from './wakeLock';
 
-type Tab = 'home' | 'plan' | 'templates' | 'history' | 'exercises';
+type Tab = 'home' | 'train' | 'history' | 'exercises';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'home', label: 'Start', icon: 'home' },
-  { id: 'plan', label: 'Schema', icon: 'schema' },
-  { id: 'templates', label: "Programma's", icon: 'programs' },
+  { id: 'train', label: 'Trainen', icon: 'schema' },
   { id: 'history', label: 'Voortgang', icon: 'progress' },
   { id: 'exercises', label: 'Oefeningen', icon: 'exercises' },
 ];
 
 export function App() {
   // #schema (old /schema/ address) and shared schema links open the Schema tab.
-  const [tab, setTab] = useState<Tab>(() => (/^#(schema|s=)/.test(location.hash) ? 'plan' : 'home'));
+  const [tab, setTab] = useState<Tab>(() => (/^#(schema|s=)/.test(location.hash) ? 'train' : 'home'));
+  const [trainView, setTrainView] = useState<TrainView>(() =>
+    /^#(schema|s=)/.test(location.hash) ? 'schema' : initialTrainView(!!getPlan()),
+  );
+  const openSchema = () => {
+    setTrainView('schema');
+    setTab('train');
+  };
   const [shared, setShared] = useState(() => parseShareHash(location.hash));
   const [workoutOpen, setWorkoutOpen] = useState(true);
   // undefined = closed, null = new template, number = edit existing
@@ -55,7 +60,7 @@ export function App() {
     if (!shared) return;
     createPlan(shared.invoer, shared.seed);
     setShared(null);
-    setTab('plan');
+    openSchema();
     showToast('Gedeeld schema geladen');
   }
 
@@ -103,11 +108,18 @@ export function App() {
           onOpenWorkout={() => setWorkoutOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
           onNewTemplate={() => setEditingTemplate(null)}
-          onOpenPlan={() => setTab('plan')}
+          onOpenPlan={openSchema}
         />
       )}
-      {tab === 'plan' && <PlanScreen active={active} onOpenWorkout={() => setWorkoutOpen(true)} />}
-      {tab === 'templates' && <TemplatesScreen onEdit={(id) => setEditingTemplate(id ?? null)} />}
+      {tab === 'train' && (
+        <TrainScreen
+          view={trainView}
+          onView={setTrainView}
+          active={active}
+          onOpenWorkout={() => setWorkoutOpen(true)}
+          onEditTemplate={(id) => setEditingTemplate(id ?? null)}
+        />
+      )}
       {tab === 'history' && <HistoryScreen onOpen={setDetailId} />}
       {tab === 'exercises' && <ExercisesScreen onOpenWorkout={() => setWorkoutOpen(true)} />}
 
