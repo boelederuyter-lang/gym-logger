@@ -5,10 +5,10 @@ import { ik, solve } from '../library/poses';
 import { matches, normalize } from '../library/search';
 
 describe('library', () => {
-  it('has 73 exercises with unique slugs and names', () => {
-    expect(LIBRARY).toHaveLength(73);
-    expect(new Set(LIBRARY.map((e) => e.slug)).size).toBe(73);
-    expect(new Set(LIBRARY.map((e) => e.name)).size).toBe(73);
+  it('has 129 exercises with unique slugs and names', () => {
+    expect(LIBRARY).toHaveLength(129);
+    expect(new Set(LIBRARY.map((e) => e.slug)).size).toBe(129);
+    expect(new Set(LIBRARY.map((e) => e.name)).size).toBe(129);
   });
 
   it('gives every exercise a tip, aliases and a known muscle group', () => {

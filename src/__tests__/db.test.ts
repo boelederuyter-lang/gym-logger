@@ -30,10 +30,10 @@ describe('migration from version 1', () => {
     const bench = await db.exercises.get(1);
     expect(bench?.slug).toBe('bankdrukken');
     expect(bench?.name).toBe('Bankdrukken');
-    expect((await db.exercises.get(2))?.custom).toBe(true);
+    expect((await db.exercises.get(2))?.slug).toBe('hip-abduction');
     expect((await db.exercises.get(3))?.muscle).toBe('Armen');
     expect(await db.exercises.where('slug').equals('bankdrukken').count()).toBe(1);
-    expect(await db.exercises.count()).toBe(73 + 2);
+    expect(await db.exercises.count()).toBe(129 + 1);
     expect((await db.sets.toArray())[0].exerciseId).toBe(1);
     db.close();
   });

@@ -14,7 +14,10 @@ void syncLibrary();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {import.meta.env.DEV && location.hash.startsWith('#figuren') ? (
-      <FigureGallery u={parseFloat(location.hash.split('=')[1] ?? '0')} />
+      <FigureGallery
+        u={parseFloat(location.hash.split('=')[1] ?? '0')}
+        from={Number(location.hash.match(/vanaf=(\d+)/)?.[1] ?? 0)}
+      />
     ) : (
       <App />
     )}

@@ -42,3 +42,29 @@ describe('editing finished workouts', () => {
     expect(await db.sets.where('workoutId').equals(id).count()).toBe(1);
   });
 });
+
+describe('library sync', () => {
+  it('links an exercise you already log instead of adding a duplicate', async () => {
+    const { syncLibrary } = await import('../db');
+    const own = await db.exercises.add({
+      name: 'wall sit',
+      aliases: [],
+      muscle: 'Benen',
+      equipment: 'other',
+      custom: true,
+    });
+    const fromPlan = await db.exercises.add({
+      name: 'Stoeldips',
+      aliases: [],
+      muscle: 'Armen',
+      equipment: 'bodyweight',
+      custom: true,
+      planKey: 'chair-dips',
+    });
+    await syncLibrary();
+    expect((await db.exercises.get(own))?.slug).toBe('wall-sit');
+    expect((await db.exercises.get(fromPlan))?.slug).toBe('bench-dips');
+    expect(await db.exercises.where('slug').equals('wall-sit').count()).toBe(1);
+    expect(await db.exercises.where('slug').equals('bench-dips').count()).toBe(1);
+  });
+});

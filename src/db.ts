@@ -1,6 +1,8 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { LEGACY_MUSCLES, LEGACY_NAMES, LIBRARY, type Equipment } from './library/exercises';
 import { defaultsFor } from './library/defaults';
+import { normalize } from './library/search';
+import { BIBLIOTHEEK } from './plan/exercises';
 import { computePrs } from './prs';
 import { parseRepRange, progressionIncrement, shouldProgress } from './progression';
 import { getSettings } from './settings';
@@ -127,12 +129,29 @@ export async function syncLibrary() {
         equipment: lib.equipment,
         tip: lib.tip,
       };
-      const row = bySlug.get(lib.slug);
-      if (!row) await db.exercises.add(data as Exercise);
-      else if (JSON.stringify({ ...data }) !== JSON.stringify(pick(row, Object.keys(data))))
+      let row = bySlug.get(lib.slug);
+      if (!row) {
+        // An exercise you already log (your own, an old one, or from the schema) that the library now has:
+        // link it instead of adding a duplicate, so its history stays.
+        const match = rows.find((r) => !r.slug && linksTo(r, lib));
+        if (match) {
+          await db.exercises.update(match.id, { ...data, custom: undefined });
+          row = { ...match, ...data };
+          bySlug.set(lib.slug, row);
+          continue;
+        }
+        await db.exercises.add(data as Exercise);
+      } else if (JSON.stringify({ ...data }) !== JSON.stringify(pick(row, Object.keys(data))))
         await db.exercises.update(row.id, data);
     }
   });
+}
+
+function linksTo(row: Exercise, lib: (typeof LIBRARY)[number]): boolean {
+  if (row.planKey && BIBLIOTHEEK[row.planKey] === lib.slug) return true;
+  if (LEGACY_NAMES[row.name] === lib.slug) return true;
+  const n = normalize(row.name);
+  return [lib.name, ...lib.aliases].some((label) => normalize(label) === n);
 }
 
 function pick(o: object, keys: string[]) {

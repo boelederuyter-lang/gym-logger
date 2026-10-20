@@ -14,7 +14,7 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 - **PR's**: zwaarste gewicht, beste geschatte 1RM en meeste reps, met een gouden banner en een trofee op de set.
 - **Warming-up sets**: automatisch berekend vanuit je werkgewicht.
 - **Voortgang**: grafieken per oefening (1RM, zwaarste gewicht, volume of reps) met periodes en een tabel. Afgeronde workouts kun je achteraf bewerken.
-- **Oefeningenbibliotheek**: 73 oefeningen met een geanimeerd poppetje, uitvoeringstip, aliassen en je eigen notitie.
+- **Oefeningenbibliotheek**: 129 oefeningen met een geanimeerd poppetje, uitvoeringstip, aliassen en je eigen notitie.
 - **Offline**: alles staat lokaal op je telefoon. Eén keer per week vraagt de app om een backup (bewaar hem in iCloud Drive); export en import staan ook onder ⚙︎.
 
 ## Op je iPhone zetten
