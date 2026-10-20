@@ -1782,3 +1782,27 @@ h3 {
 .app .train .screen {
   padding-bottom: 0;
 }
+
+/* ---------- coach: time left ---------- */
+
+.time-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  text-align: left;
+}
+.time-bar .num {
+  font-size: 18px;
+}
+.time-bar-action {
+  color: var(--red);
+  font-weight: 650;
+}

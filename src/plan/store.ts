@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { genereerSchema, nieuweSeed, normaliseerInvoer, type Invoer, type Schema } from './generator';
+import {
+  genereerSchema,
+  nieuweSeed,
+  normaliseerInvoer,
+  pasWisselsToe,
+  type Invoer,
+  type Schema,
+  type Wissel,
+} from './generator';
 
 /** The training schema and where you are in the 4-week block. Lives in localStorage. */
 export interface PlanState {
@@ -10,6 +18,7 @@ export interface PlanState {
   week: number;
   gedaan: Record<string, boolean>; // `${week}-${dag}` ticked off by hand (trained elsewhere)
   gestart: string;
+  wissels?: Wissel[]; // exercises you swapped for another variant, applied on top of the generated schema
 }
 
 // Same key as the former standalone schema app on the same site, so an existing schema carries over.
@@ -21,7 +30,8 @@ function load(): PlanState | null {
     const invoer = normaliseerInvoer(data?.invoer);
     if (!data || data.versie !== 1 || !invoer || !data.schema) return null;
     // Schemas from the standalone app lack the library link; the seed regenerates the same schema.
-    if (!data.schema.dagen?.[0]?.oefeningen?.[0]?.patroon) data.schema = genereerSchema(invoer, data.schema.seed);
+    if (!data.schema.dagen?.[0]?.oefeningen?.[0]?.patroon)
+      data.schema = pasWisselsToe(genereerSchema(invoer, data.schema.seed), data.wissels);
     return { ...data, invoer };
   } catch {
     return null;
@@ -55,11 +65,12 @@ export function usePlan(): PlanState | null {
   return p;
 }
 
-export function createPlan(invoer: Invoer, seed = nieuweSeed()) {
+export function createPlan(invoer: Invoer, seed = nieuweSeed(), wissels: Wissel[] = []) {
   save({
     versie: 1,
     invoer,
-    schema: genereerSchema(invoer, seed),
+    schema: pasWisselsToe(genereerSchema(invoer, seed), wissels),
+    wissels,
     blok: 1,
     week: 1,
     gedaan: {},
@@ -70,7 +81,14 @@ export function createPlan(invoer: Invoer, seed = nieuweSeed()) {
 /** New exercises for the same answers; block and week stay. */
 export function regeneratePlan() {
   if (!current) return;
-  save({ ...current, schema: genereerSchema(current.invoer, nieuweSeed()), gedaan: {} });
+  save({ ...current, schema: genereerSchema(current.invoer, nieuweSeed()), gedaan: {}, wissels: [] });
+}
+
+/** Swaps one exercise of the schema for a variant; a later swap of the same spot replaces the earlier one. */
+export function swapExercise(w: Wissel) {
+  if (!current) return;
+  const wissels = [...(current.wissels ?? []).filter((x) => x.dag !== w.dag || x.index !== w.index), w];
+  save({ ...current, schema: pasWisselsToe(current.schema, [w]), wissels });
 }
 
 export function setWeek(week: number) {
@@ -112,16 +130,24 @@ export function restorePlan(data: unknown) {
 export function shareLink(plan: PlanState, base = location.href): string {
   const i = plan.invoer;
   const url = new URL(base);
-  url.hash = `s=${[i.doel, i.niveau, i.dagen, i.tijd, i.apparatuur, plan.schema.seed].join('.')}`;
+  const wissels = (plan.wissels ?? []).map((w) => `!${w.dag}.${w.index}.${w.id}`).join('');
+  url.hash = `s=${[i.doel, i.niveau, i.dagen, i.tijd, i.apparatuur, plan.schema.seed].join('.')}${wissels}`;
   return url.toString();
 }
 
-export function parseShareHash(hash: string): { invoer: Invoer; seed: number } | null {
-  const match = hash.match(/^#s=([\w.]+)$/);
+export function parseShareHash(hash: string): { invoer: Invoer; seed: number; wissels: Wissel[] } | null {
+  const match = hash.match(/^#s=([\w.]+)((?:!\d+\.\d+\.[a-z0-9-]+)*)$/);
   if (!match) return null;
+  const wissels = match[2]
+    .split('!')
+    .filter(Boolean)
+    .map((part) => {
+      const [dag, index, ...id] = part.split('.');
+      return { dag: Number(dag), index: Number(index), id: id.join('.') };
+    });
   const [doel, niveau, dagen, tijd, apparatuur, seed] = match[1].split('.');
   const invoer = normaliseerInvoer({ doel, niveau, dagen, tijd, apparatuur });
   const s = Number(seed);
   if (!invoer || !Number.isInteger(s) || s < 0) return null;
-  return { invoer, seed: s };
+  return { invoer, seed: s, wissels };
 }

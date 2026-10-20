@@ -7,6 +7,7 @@ import { computePrs } from './prs';
 import { parseRepRange, progressionIncrement, shouldProgress } from './progression';
 import { getSettings } from './settings';
 import { cleanLinks } from './supersets';
+import { estimateSeconds, fitToTime } from './coach';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
 
@@ -472,4 +473,109 @@ export async function importData(json: string) {
   });
   await syncLibrary();
   if (data.plan) restorePlan(data.plan);
+}
+
+/**
+ * Replaces an exercise in a running workout (machine taken): its open sets move to the new
+ * exercise, done sets stay where they are. Returns a function that undoes it.
+ */
+export async function replaceExerciseInWorkout(
+  workoutId: number,
+  oldId: number,
+  next: Exercise,
+): Promise<() => Promise<void>> {
+  const before = (await db.workouts.get(workoutId))!;
+  const sets = await db.sets.where({ workoutId, exerciseId: oldId }).toArray();
+  const open = sets.filter((s) => !s.done);
+  const openWork = open.filter((s) => !s.warmup);
+  const keepOld = sets.some((s) => s.done);
+
+  const ids = [...before.exerciseIds];
+  const at = ids.indexOf(oldId);
+  if (keepOld) ids.splice(at + 1, 0, next.id);
+  else ids[at] = next.id;
+  const rest = { ...before.rest, [next.id]: before.rest?.[oldId] ?? defaultsFor(next).rest };
+  const linked = before.supersets?.includes(oldId);
+  const supersets = cleanLinks(
+    ids,
+    keepOld
+      ? [...(before.supersets ?? []), ...(linked ? [next.id] : [])]
+      : (before.supersets ?? []).map((id) => (id === oldId ? next.id : id)),
+  );
+
+  await db.sets.bulkDelete(open.map((s) => s.id));
+  await db.workouts.update(workoutId, { exerciseIds: ids, rest, supersets });
+  const count = openWork.length || defaultsFor(next).sets;
+  await addPlannedSets(workoutId, next.id, count, openWork[0]?.reps ?? defaultsFor(next).reps);
+
+  return async () => {
+    await db.sets
+      .where({ workoutId, exerciseId: next.id })
+      .filter((s) => !s.done)
+      .delete();
+    await db.sets.bulkPut(open);
+    await db.workouts.update(workoutId, {
+      exerciseIds: before.exerciseIds,
+      rest: before.rest,
+      supersets: before.supersets,
+    });
+  };
+}
+
+/**
+ * Shortens what's left of a running workout to fit `minutes` (see fitToTime). Returns what changed
+ * and a function that undoes it.
+ */
+export async function fitWorkoutToTime(workoutId: number, minutes: number) {
+  const before = (await db.workouts.get(workoutId))!;
+  const all = await db.sets.where('workoutId').equals(workoutId).toArray();
+  const exercises = await db.exercises.bulkGet(before.exerciseIds);
+  const items = before.exerciseIds.map((id, i) => ({
+    id,
+    openSets: all.filter((s) => s.exerciseId === id && !s.done && !s.warmup).length,
+    rest: restFor(before, exercises[i]),
+  }));
+  const plan = fitToTime(items, minutes);
+
+  const removed: WorkoutSet[] = [];
+  for (const it of items) {
+    const open = all.filter((s) => s.exerciseId === it.id && !s.done).sort((a, b) => a.order - b.order);
+    const keep = plan.dropped.includes(it.id) ? 0 : plan.sets[it.id];
+    const work = open.filter((s) => !s.warmup);
+    // Remove the last open work sets first; a dropped exercise loses its open warm-ups too.
+    removed.push(...work.slice(keep));
+    if (keep === 0) removed.push(...open.filter((s) => s.warmup));
+  }
+  const gone = new Set(plan.dropped.filter((id) => !all.some((s) => s.exerciseId === id && s.done)));
+  const exerciseIds = before.exerciseIds.filter((id) => !gone.has(id));
+  await db.sets.bulkDelete(removed.map((s) => s.id));
+  await db.workouts.update(workoutId, {
+    exerciseIds,
+    rest: { ...before.rest, ...plan.rest },
+    supersets: cleanLinks(exerciseIds, before.supersets),
+  });
+
+  const undo = async () => {
+    await db.sets.bulkPut(removed);
+    await db.workouts.update(workoutId, {
+      exerciseIds: before.exerciseIds,
+      rest: before.rest,
+      supersets: before.supersets,
+    });
+  };
+  const setsRemoved = removed.filter((s) => !s.warmup && !plan.dropped.includes(s.exerciseId)).length;
+  return { minutes: plan.minutes, dropped: plan.dropped.length, setsRemoved, undo };
+}
+
+/** Estimated minutes for the open work sets of a workout. */
+export async function remainingMinutes(workoutId: number): Promise<number> {
+  const w = await db.workouts.get(workoutId);
+  if (!w) return 0;
+  const all = await db.sets.where('workoutId').equals(workoutId).toArray();
+  const exercises = await db.exercises.bulkGet(w.exerciseIds);
+  const items = w.exerciseIds.map((id, i) => ({
+    openSets: all.filter((s) => s.exerciseId === id && !s.done && !s.warmup).length,
+    rest: restFor(w, exercises[i]),
+  }));
+  return Math.round(estimateSeconds(items) / 60);
 }

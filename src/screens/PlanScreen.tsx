@@ -4,7 +4,8 @@ import { db, type Workout } from '../db';
 import { ActionSheet, type Action } from '../components/ActionSheet';
 import { Icon } from '../components/Icon';
 import { Thumb } from '../components/Thumb';
-import { LOGGER_SPIER } from '../plan/exercises';
+import { APPARATUUR, BIBLIOTHEEK, LOGGER_SPIER } from '../plan/exercises';
+import { Sheet } from '../components/Sheet';
 import {
   APPARATUUR_KEUZES,
   DOELEN,
@@ -15,8 +16,10 @@ import {
   weekSchema,
   type Cardio,
   type Invoer,
+  type Schema,
   type SchemaOefening,
   type WeekDag,
+  varianten,
 } from '../plan/generator';
 import { loggedDays, startPlanDay } from '../plan/start';
 import {
@@ -25,6 +28,7 @@ import {
   setWeek,
   shareLink,
   startNewBlock,
+  swapExercise,
   toggleDone,
   usePlan,
   type PlanState,
@@ -231,6 +235,7 @@ function PlanView({
 }) {
   const workouts = useLiveQuery(() => db.workouts.toArray(), []);
   const [confirm, setConfirm] = useState<{ title: string; actions: Action[] } | null>(null);
+  const [swapping, setSwapping] = useState<{ dag: number; index: number } | null>(null);
   const { invoer, schema, week, blok } = plan;
   const dagen = weekSchema(schema, week);
   const logged = loggedDays(plan, workouts ?? []);
@@ -360,6 +365,7 @@ function PlanView({
             active={active}
             onStart={() => start(d)}
             onToggle={() => toggleDone(week, d)}
+            onSwap={(index) => setSwapping({ dag: d, index })}
           />
         ))}
 
@@ -383,6 +389,7 @@ function PlanView({
         )}
       </main>
       {confirm && <ActionSheet title={confirm.title} actions={confirm.actions} onClose={() => setConfirm(null)} />}
+      {swapping && <SwapSheet schema={schema} {...swapping} onClose={() => setSwapping(null)} />}
     </div>
   );
 }
@@ -395,6 +402,7 @@ function DayCard({
   active,
   onStart,
   onToggle,
+  onSwap,
 }: {
   dag: WeekDag;
   index: number;
@@ -403,6 +411,7 @@ function DayCard({
   active?: Workout;
   onStart: () => void;
   onToggle: () => void;
+  onSwap: (index: number) => void;
 }) {
   return (
     <article className={`card plan-day ${done ? 'done' : ''}`}>
@@ -430,7 +439,7 @@ function DayCard({
       <ol className="plan-list">
         {dag.oefeningen.map((o, i) => (
           <li key={o.id}>
-            <ExerciseRow o={o} nr={i + 1} />
+            <ExerciseRow o={o} nr={i + 1} onSwap={() => onSwap(i)} />
           </li>
         ))}
       </ol>
@@ -447,7 +456,7 @@ function Badge({ text }: { text?: string | null }) {
   return <span className={`plan-badge ${text === 'Deload' ? 'quiet' : ''}`}>{text}</span>;
 }
 
-function ExerciseRow({ o, nr }: { o: SchemaOefening; nr: number }) {
+function ExerciseRow({ o, nr, onSwap }: { o: SchemaOefening; nr: number; onSwap: () => void }) {
   return (
     <details className="plan-ex">
       <summary>
@@ -475,8 +484,66 @@ function ExerciseRow({ o, nr }: { o: SchemaOefening; nr: number }) {
           <span className="tag">{o.apparatuur}</span>
           <span className="tag">{o.type === 'compound' ? 'Compound' : 'Isolatie'}</span>
         </div>
+        <button className="btn secondary block" onClick={onSwap}>
+          Wissel oefening
+        </button>
       </div>
     </details>
+  );
+}
+
+/** Pick another exercise with the same movement pattern for one spot in the schema. */
+function SwapSheet({
+  schema,
+  dag,
+  index,
+  onClose,
+}: {
+  schema: Schema;
+  dag: number;
+  index: number;
+  onClose: () => void;
+}) {
+  const huidig = schema.dagen[dag]?.oefeningen[index];
+  const opties = varianten(schema, dag, index);
+  if (!huidig) return null;
+  return (
+    <Sheet title={`Wissel ${huidig.naam}`} onClose={onClose}>
+      <p className="small muted">
+        Oefeningen die hetzelfde bewegingspatroon trainen en passen bij je apparatuur. Sets, reps en rust blijven
+        passend bij je doel.
+      </p>
+      {opties.length === 0 ? (
+        <p className="empty">Er is geen andere variant voor deze plek met jouw apparatuur.</p>
+      ) : (
+        <ul className="list card">
+          {opties.map((o) => (
+            <li key={o.id}>
+              <button
+                className="list-item"
+                onClick={() => {
+                  swapExercise({ dag, index, id: o.id });
+                  showToast(`${huidig.naam} vervangen door ${o.naam}`);
+                  onClose();
+                }}
+              >
+                {BIBLIOTHEEK[o.id] ? (
+                  <Thumb exercise={{ slug: BIBLIOTHEEK[o.id], muscle: LOGGER_SPIER[o.patroon] }} size={40} />
+                ) : (
+                  <span className="plan-nr">·</span>
+                )}
+                <span className="grow">
+                  <strong className="block">{o.naam}</strong>
+                  <span className="small muted">
+                    {APPARATUUR[o.apparatuur]} · {o.type === 'compound' ? 'compound' : 'isolatie'}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Sheet>
   );
 }
 

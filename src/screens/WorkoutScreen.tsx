@@ -11,6 +11,7 @@ import {
   finishWorkout,
   previousSets,
   recomputePrs,
+  remainingMinutes,
   removeExerciseFromWorkout,
   restFor,
   type Exercise,
@@ -19,6 +20,7 @@ import {
 } from '../db';
 import { ActionSheet, type Action } from '../components/ActionSheet';
 import { ExerciseInfo } from '../components/ExerciseInfo';
+import { ReplaceSheet, TimeSheet } from '../components/CoachSheets';
 import { Icon } from '../components/Icon';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { NoteBlock, NoteSheet } from '../components/NoteSheet';
@@ -48,9 +50,11 @@ interface Props {
 export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false }: Props) {
   const now = useNow();
   const [picking, setPicking] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id).toArray(), [workout.id]);
   const totalCount = sets?.length ?? 0;
   const doneCount = sets?.filter((s) => s.done).length ?? 0;
+  const left = useLiveQuery(() => remainingMinutes(workout.id), [workout.id]) ?? 0;
 
   async function finish() {
     if (editing) {
@@ -117,6 +121,14 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
       </header>
 
       <main className="content">
+        {!editing && left > 5 && (
+          <button className="time-bar" onClick={() => setTimeOpen(true)}>
+            <span>
+              Nog ± <strong className="num">{left} min</strong>
+            </span>
+            <span className="time-bar-action">Weinig tijd?</span>
+          </button>
+        )}
         {workout.exerciseIds.length === 0 && <p className="empty">Voeg je eerste oefening toe om te beginnen.</p>}
         {workout.exerciseIds.map((exId) => (
           <ExerciseCard
@@ -139,6 +151,7 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
         )}
       </main>
 
+      {timeOpen && <TimeSheet workout={workout} left={left} onClose={() => setTimeOpen(false)} />}
       <div className="workout-bottom">
         <RestBar />
       </div>
@@ -157,7 +170,7 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
   );
 }
 
-type Overlay = 'menu' | 'info' | 'note' | 'rest' | 'progress' | null;
+type Overlay = 'menu' | 'info' | 'note' | 'rest' | 'progress' | 'replace' | null;
 
 function ExerciseCard({
   workout,
@@ -268,7 +281,9 @@ function ExerciseCard({
 
   const isLast = workout.exerciseIds.indexOf(exerciseId) === workout.exerciseIds.length - 1;
   const linked = workout.supersets?.includes(exerciseId) ?? false;
+  const hasOpen = sets.some((s) => !s.done);
   const menu: Action[] = [
+    ...(!editing && hasOpen ? [{ label: 'Bezet? Kies een vervanger', onClick: () => setOverlay('replace') }] : []),
     { label: 'Uitvoering bekijken', onClick: () => setOverlay('info') },
     ...(isLast && !linked
       ? []
@@ -351,6 +366,9 @@ function ExerciseCard({
       )}
       {overlay === 'note' && exercise && <NoteSheet exercise={exercise} onClose={() => setOverlay(null)} />}
       {overlay === 'progress' && <ProgressSheet exerciseId={exerciseId} onClose={() => setOverlay(null)} />}
+      {overlay === 'replace' && exercise && (
+        <ReplaceSheet workout={workout} exercise={exercise} onClose={() => setOverlay(null)} />
+      )}
       {overlay === 'rest' && (
         <RestSheet
           value={rest}

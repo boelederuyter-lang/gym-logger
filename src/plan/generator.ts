@@ -595,3 +595,47 @@ export function formatRust(sec: number) {
   const s = sec % 60;
   return s ? `${m}:${String(s).padStart(2, '0')} min` : `${m} min`;
 }
+
+// ---------------------------------------------------------------------------
+// Oefeningen verwisselen
+
+/** Eén verwisselde oefening: dag, plek in de dag en de nieuwe oefening. */
+export interface Wissel {
+  dag: number;
+  index: number;
+  id: string;
+}
+
+/**
+ * Varianten om een oefening in het schema mee te verwisselen: hetzelfde bewegingspatroon,
+ * passend bij je apparatuur en niveau, en nog niet op die dag. Standaardoefeningen eerst.
+ */
+export function varianten(schema: Schema, dagIndex: number, oefIndex: number): PlanOefening[] {
+  const dag = schema.dagen[dagIndex];
+  const huidig = dag?.oefeningen[oefIndex];
+  if (!huidig) return [];
+  const opDag = new Set(dag.oefeningen.map((o) => o.id));
+  return beschikbareOefeningen(schema.invoer.apparatuur, schema.invoer.niveau)
+    .filter((o) => o.patroon === huidig.patroon && !opDag.has(o.id))
+    .sort((a, b) => Number(!!b.basis) - Number(!!a.basis) || a.naam.localeCompare(b.naam));
+}
+
+/** Het schema met één oefening vervangen; sets blijven, reps en rust volgen het type van de nieuwe oefening. */
+export function wisselOefening(schema: Schema, w: Wissel): Schema {
+  const nieuw = OEFENINGEN.find((o) => o.id === w.id);
+  const oud = schema.dagen[w.dag]?.oefeningen[w.index];
+  if (!nieuw || !oud) return schema;
+  const dagen = schema.dagen.map((dag, d) =>
+    d !== w.dag
+      ? dag
+      : {
+          ...dag,
+          oefeningen: dag.oefeningen.map((o, i) => (i === w.index ? maakOefening(nieuw, schema.invoer, oud.sets) : o)),
+        },
+  );
+  return { ...schema, dagen };
+}
+
+export function pasWisselsToe(schema: Schema, wissels: Wissel[] = []): Schema {
+  return wissels.reduce(wisselOefening, schema);
+}

@@ -10,6 +10,8 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 - **Progressie**: haalde je vorige keer in elke set de bovenkant van je reps, dan staat er 2,5 kg (benen met stang: 5 kg) meer klaar.
 - **Afvinken**: tik ✓ en de rusttimer start. Het gewicht schuift door naar de volgende sets. Onder de volgende set staan grote −/+ knoppen en voor stangoefeningen de schijven per kant.
 - **Supersets**: koppel een oefening aan de volgende; de rust start pas na de laatste.
+- **Bezet?** Machine of bank bezet: kies via het menu van de oefening een vervanger die hetzelfde traint. Je open sets gaan mee.
+- **Weinig tijd?** Kies hoeveel minuten je nog hebt; de app kort de rest van je training slim in (eerst rust, dan sets, dan de laatste oefeningen).
 - **Scherm blijft aan** tijdens een workout, en het piepje aan het einde van de rust kun je uitzetten.
 - **PR's**: zwaarste gewicht, beste geschatte 1RM en meeste reps, met een gouden banner en een trofee op de set.
 - **Warming-up sets**: automatisch berekend vanuit je werkgewicht.
@@ -31,6 +33,7 @@ Tabblad **Trainen → Schema**: vijf vragen (doel, niveau, dagen, tijd, apparatu
 
 - **Start training** bij een dag opent een gelogde workout met de sets, reps en rust van die week. In week 3 staat het gewicht al +2,5 kg (boven) of +5 kg (onder) hoger klaar, in de deload weer terug.
 - Afgeronde schema-workouts tellen automatisch als gedaan; het startscherm zet de volgende schema-training klaar.
+- **Wissel oefening**: klap een oefening open en kies een variant met hetzelfde bewegingspatroon. Een gedeelde link neemt je wissels mee.
 - Schema-oefeningen zijn gekoppeld aan de oefeningenbibliotheek, dus PR's, voortgang en animaties werken gewoon. Oefeningen die niet in de bibliotheek staan worden als eigen oefening aangemaakt.
 - Met de deelknop stuur je een link waarmee een vriend precies hetzelfde schema krijgt. Het oude adres `/schema/` verwijst door.
 - Code: `src/plan/` (oefeningendatabase, generator, opslag, workouts starten) en `src/screens/PlanScreen.tsx`.

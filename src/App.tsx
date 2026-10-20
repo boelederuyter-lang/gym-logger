@@ -58,7 +58,7 @@ export function App() {
 
   function acceptShared() {
     if (!shared) return;
-    createPlan(shared.invoer, shared.seed);
+    createPlan(shared.invoer, shared.seed, shared.wissels);
     setShared(null);
     openSchema();
     showToast('Gedeeld schema geladen');
