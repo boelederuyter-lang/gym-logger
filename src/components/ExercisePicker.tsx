@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
+import type { Gewricht, Patroon } from '../coach/exercises';
 import { db, type Equipment, type Exercise } from '../db';
 import { EQUIPMENT_LABELS, MUSCLES } from '../library/exercises';
 import { matches, normalize } from '../library/search';
+import { JointsField, PatternField } from './CoachFields';
 import { ExerciseInfo } from './ExerciseInfo';
 import { Sheet } from './Sheet';
 import { Thumb } from './Thumb';
@@ -139,11 +141,14 @@ export function NewExerciseSheet({
   const [name, setName] = useState(initialName);
   const [muscle, setMuscle] = useState<string>(MUSCLES[0]);
   const [equipment, setEquipment] = useState<Equipment>('barbell');
+  const [patroon, setPatroon] = useState<Patroon>();
+  const [gewrichten, setGewrichten] = useState<Gewricht[]>([]);
 
   async function save() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const id = await db.exercises.add({ name: trimmed, aliases: [], muscle, equipment, custom: true });
+    const coach = patroon || gewrichten.length ? { patroon, gewrichten } : undefined;
+    const id = await db.exercises.add({ name: trimmed, aliases: [], muscle, equipment, custom: true, coach });
     const ex = await db.exercises.get(id);
     if (ex) onCreated?.(ex);
     onClose();
@@ -183,6 +188,8 @@ export function NewExerciseSheet({
           ))}
         </div>
       </div>
+      <PatternField value={patroon} onChange={setPatroon} />
+      <JointsField value={gewrichten} onChange={setGewrichten} />
     </Sheet>
   );
 }

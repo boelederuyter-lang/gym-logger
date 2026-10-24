@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { estimateSeconds, fitToTime, patternOf, replacements, type CoachExercise } from '../coach';
+import { patternOf, replacements, type CoachExercise } from '../coach/replace';
+import { estimateSeconds, fitToTime } from '../coach/time';
 import { LIBRARY } from '../library/exercises';
 
 const all: CoachExercise[] = LIBRARY.map((e, i) => ({
@@ -13,17 +14,46 @@ const bySlug = (slug: string) => all.find((e) => e.slug === slug)!;
 
 describe('replacements', () => {
   it('knows the movement pattern of library exercises', () => {
-    expect(patternOf(bySlug('bankdrukken'))).toBe('hpush');
-    expect(patternOf(bySlug('lat-pulldown'))).toBe('vpull');
+    expect(patternOf(bySlug('bankdrukken'))).toBe('horizontaal duwen');
+    expect(patternOf(bySlug('lat-pulldown'))).toBe('verticaal trekken');
   });
 
   it('offers exercises with the same pattern, other equipment first', () => {
     const bench = bySlug('bankdrukken');
     const list = replacements(bench, all);
     expect(list.length).toBeGreaterThan(2);
-    for (const o of list) expect(patternOf(o)).toBe('hpush');
+    for (const o of list) expect(patternOf(o)).toBe('horizontaal duwen');
     expect(list[0].equipment).not.toBe('barbell');
     expect(list.map((o) => o.slug)).not.toContain('bankdrukken');
+  });
+
+  it('puts the fixed alternatives from the coach database first', () => {
+    const list = replacements(bySlug('bankdrukken'), all).map((o) => o.slug);
+    expect(list.slice(0, 4)).toEqual(['dumbbell-bankdrukken', 'chest-press-machine', 'smith-bankdrukken', 'push-up']);
+  });
+
+  it('keeps isolation replacements on the same muscle', () => {
+    for (const o of replacements(bySlug('lateral-raises'), all))
+      expect([
+        'lateral-raises',
+        'cable-lateral-raise',
+        'lateral-raise-machine',
+        'upright-row',
+        'front-raises',
+      ]).toContain(o.slug);
+  });
+
+  it('uses the pattern a user gave a custom exercise', () => {
+    const own: CoachExercise = {
+      id: 998,
+      name: 'Landmine press',
+      muscle: 'Schouders',
+      equipment: 'barbell',
+      coach: { patroon: 'verticaal duwen' },
+    };
+    const list = replacements(own, all);
+    expect(list.length).toBeGreaterThan(2);
+    for (const o of list) expect(patternOf(o)).toBe('verticaal duwen');
   });
 
   it('skips exercises already in the workout', () => {

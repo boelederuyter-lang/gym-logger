@@ -7,7 +7,8 @@ import { computePrs } from './prs';
 import { parseRepRange, progressionIncrement, shouldProgress } from './progression';
 import { getSettings } from './settings';
 import { cleanLinks } from './supersets';
-import { estimateSeconds, fitToTime } from './coach';
+import { estimateSeconds, fitToTime } from './coach/time';
+import type { EigenCoachInfo } from './coach/exercises';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
 
@@ -24,6 +25,7 @@ export interface Exercise {
   note?: string; // personal note, e.g. "rek op stand 12"
   custom?: boolean;
   planKey?: string; // id in de schema-database, voor schema-oefeningen buiten de bibliotheek
+  coach?: EigenCoachInfo; // pattern, equipment and joints a user gave a custom exercise
 }
 
 export interface TemplateItem {

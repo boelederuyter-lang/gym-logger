@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { platesPerSide } from '../plates';
 import { parseRepRange, progressionIncrement, shouldProgress } from '../progression';
 
 describe('progression', () => {
@@ -25,18 +24,5 @@ describe('progression', () => {
     expect(shouldProgress([], [8, 12], 2.5)).toBe(false);
     expect(shouldProgress([s(null, 15)], [10, 12], 2.5)).toBe(false);
     expect(shouldProgress([s(60, 12)], [8, 12], 0)).toBe(false);
-  });
-});
-
-describe('platesPerSide', () => {
-  it('splits the weight over both sides', () => {
-    expect(platesPerSide(100, 20)).toEqual({ plates: [25, 15], rest: 0 });
-    expect(platesPerSide(82.5, 20)).toEqual({ plates: [25, 5, 1.25], rest: 0 });
-    expect(platesPerSide(61, 20)).toEqual({ plates: [20], rest: 0.5 });
-  });
-
-  it('returns null for the empty bar or less', () => {
-    expect(platesPerSide(20, 20)).toBeNull();
-    expect(platesPerSide(15, 20)).toBeNull();
   });
 });

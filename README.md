@@ -8,7 +8,7 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 - **Losse workouts**: start leeg en voeg onderweg oefeningen toe (meerdere tegelijk).
 - **Vorige keer**: per set zie je wat je de vorige keer deed, alvast ingevuld.
 - **Progressie**: haalde je vorige keer in elke set de bovenkant van je reps, dan staat er 2,5 kg (benen met stang: 5 kg) meer klaar.
-- **Afvinken**: tik ✓ en de rusttimer start. Het gewicht schuift door naar de volgende sets. Onder de volgende set staan grote −/+ knoppen en voor stangoefeningen de schijven per kant.
+- **Afvinken**: tik ✓ en de rusttimer start. Het gewicht schuift door naar de volgende sets. Onder de volgende set staan grote −/+ knoppen.
 - **Supersets**: koppel een oefening aan de volgende; de rust start pas na de laatste.
 - **Bezet?** Machine of bank bezet: kies via het menu van de oefening een vervanger die hetzelfde traint. Je open sets gaan mee.
 - **Weinig tijd?** Kies hoeveel minuten je nog hebt; de app kort de rest van je training slim in (eerst rust, dan sets, dan de laatste oefeningen).

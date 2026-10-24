@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, fitWorkoutToTime, replaceExerciseInWorkout, type Exercise, type Workout } from '../db';
-import { replacements } from '../coach';
+import { replacements } from '../coach/replace';
 import { EQUIPMENT_LABELS } from '../library/exercises';
 import { showToast } from '../toast';
 import { Sheet } from './Sheet';

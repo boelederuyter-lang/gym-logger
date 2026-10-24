@@ -36,7 +36,6 @@ import { useSettings } from '../settings';
 import { showToast } from '../toast';
 import { useNow } from '../useNow';
 import { warmupSets } from '../warmup';
-import { platesPerSide } from '../plates';
 import { supersetInfo, toggleLink } from '../supersets';
 
 interface Props {
@@ -345,7 +344,6 @@ function ExerciseCard({
               ? {
                   step: settings.weightStep,
                   weighted: exercise?.equipment !== 'bodyweight',
-                  bar: exercise?.equipment === 'barbell' ? settings.barWeight : undefined,
                   prev: workIndex[i] >= 0 ? prev[workIndex[i]] : undefined,
                 }
               : undefined
@@ -480,24 +478,21 @@ function SetRow({
   );
 }
 
-/** Big −/+ buttons for the next set, so you don't need the keyboard; plates per side for barbells. */
+/** Big −/+ buttons for the next set, so you don't need the keyboard. */
 function QuickAdjust({
   set,
   step,
   weighted,
-  bar,
   prev,
 }: {
   set: WorkoutSet;
   step: number;
   weighted: boolean;
-  bar?: number;
   prev?: WorkoutSet;
 }) {
   const weight = set.weight ?? prev?.weight ?? 0;
   const reps = set.reps ?? prev?.reps ?? 0;
   const change = (patch: Partial<WorkoutSet>) => db.sets.update(set.id, patch);
-  const plates = bar != null ? platesPerSide(weight, bar) : null;
   return (
     <div className="quick-adjust">
       {weighted && (
@@ -523,15 +518,6 @@ function QuickAdjust({
           +
         </button>
       </div>
-      {bar != null && (
-        <span className="plates small">
-          {plates
-            ? `Per kant: ${plates.plates.map(fmtWeight).join(' + ')}${plates.rest ? ` (+${fmtWeight(plates.rest)} kg)` : ''}`
-            : weight > 0
-              ? `Lege stang (${fmtWeight(bar)} kg)`
-              : ''}
-        </span>
-      )}
     </div>
   );
 }
