@@ -6,6 +6,9 @@ import { Icon } from '../components/Icon';
 import { Thumb } from '../components/Thumb';
 import { APPARATUUR, BIBLIOTHEEK, LOGGER_SPIER } from '../plan/exercises';
 import { Sheet } from '../components/Sheet';
+import { Onboarding } from './Onboarding';
+import { naarOudeInvoer, vanOudeInvoer, type Profiel } from '../coach/profile';
+import { saveProfiel, useProfiel } from '../coach/profileStore';
 import {
   APPARATUUR_KEUZES,
   DOELEN,
@@ -15,7 +18,6 @@ import {
   formatRust,
   weekSchema,
   type Cardio,
-  type Invoer,
   type Schema,
   type SchemaOefening,
   type WeekDag,
@@ -42,185 +44,66 @@ interface Props {
 
 export function PlanScreen({ active, onOpenWorkout }: Props) {
   const plan = usePlan();
-  const [editing, setEditing] = useState(false);
+  const profiel = useProfiel();
+  const [vragen, setVragen] = useState(false);
 
-  if (!plan || editing) {
+  function klaar(p: Profiel) {
+    saveProfiel(p);
+    createPlan(naarOudeInvoer(p));
+    setVragen(false);
+    window.scrollTo({ top: 0 });
+    showToast('Je schema staat klaar 💪');
+  }
+
+  const vragenlijst = vragen && (
+    <Onboarding
+      initial={profiel ?? (plan ? vanOudeInvoer(plan.invoer) : undefined)}
+      editing={!!plan}
+      onClose={() => setVragen(false)}
+      onDone={klaar}
+    />
+  );
+
+  if (!plan) {
     return (
-      <PlanForm
-        initial={plan?.invoer}
-        onCancel={plan ? () => setEditing(false) : undefined}
-        onSubmit={(invoer) => {
-          createPlan(invoer);
-          setEditing(false);
-          window.scrollTo({ top: 0 });
-          showToast('Je schema staat klaar 💪');
-        }}
-      />
+      <div className="screen">
+        <header className="page-header home-header">
+          <div>
+            <span className="date">Je coach</span>
+            <h1>Schema maken</h1>
+          </div>
+        </header>
+        <main className="content">
+          <section className="card coach-intro">
+            <h2>Een schema dat met je meegroeit</h2>
+            <p className="muted">
+              Beantwoord een paar korte vragen. Je krijgt een schema dat past bij je doel, je tijd en je materiaal.
+            </p>
+            <ul className="coach-points">
+              <li>Oefeningen die je kunt doen, ook met een blessure</li>
+              <li>Elke training met één tik starten</li>
+              <li>Duidelijk wanneer je zwaarder mag</li>
+            </ul>
+            <button className="btn primary block big" onClick={() => setVragen(true)}>
+              Start de vragenlijst
+            </button>
+            <small className="muted center">Duurt ongeveer 2 minuten</small>
+          </section>
+        </main>
+        {vragenlijst}
+      </div>
     );
   }
-  return <PlanView plan={plan} active={active} onOpenWorkout={onOpenWorkout} onEdit={() => setEditing(true)} />;
-}
-
-// ---------------------------------------------------------------------------
-// Form
-
-const STANDAARD: Invoer = { doel: 'spiermassa', niveau: 'beginner', dagen: 3, tijd: 60, apparatuur: 'gym' };
-
-const SPLIT_HINT: Record<number, string> = {
-  2: 'Full body, 2× per week',
-  3: 'Full body, 3× per week',
-  4: 'Upper/lower: 2× boven, 2× onder',
-  5: 'Push, pull, legs + upper en lower',
-};
-
-type Optie<T> = [T, string, string?];
-
-function Choices<T extends string | number>({
-  options,
-  value,
-  onChange,
-  columns,
-  label,
-}: {
-  options: Optie<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  columns: number;
-  label: string;
-}) {
   return (
-    <div
-      className={`choices ${columns >= 3 ? 'centered' : ''}`}
-      style={{ '--cols': columns } as React.CSSProperties}
-      role="radiogroup"
-      aria-label={label}
-    >
-      {options.map(([v, title, sub]) => (
-        <button
-          key={v}
-          type="button"
-          role="radio"
-          aria-checked={v === value}
-          className={`choice ${v === value ? 'active' : ''}`}
-          onClick={() => onChange(v)}
-        >
-          <strong>{title}</strong>
-          {sub && <span>{sub}</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PlanForm({
-  initial,
-  onSubmit,
-  onCancel,
-}: {
-  initial?: Invoer;
-  onSubmit: (i: Invoer) => void;
-  onCancel?: () => void;
-}) {
-  const [i, setI] = useState<Invoer>(initial ?? STANDAARD);
-  const set =
-    <K extends keyof Invoer>(k: K) =>
-    (v: Invoer[K]) =>
-      setI({ ...i, [k]: v });
-
-  return (
-    <div className="screen">
-      <header className="page-header home-header">
-        <div>
-          <span className="date">Trainingsschema</span>
-          <h1>{onCancel ? 'Invoer aanpassen' : 'Schema maken'}</h1>
-        </div>
-      </header>
-      <main className="content">
-        {!onCancel && (
-          <p className="muted intro-text">
-            Vijf vragen en je hebt een blok van 4 weken met progressie. Elke training start je met één tik als workout.
-          </p>
-        )}
-        <section className="card form-card">
-          <h3>Wat is je doel?</h3>
-          <Choices
-            label="Doel"
-            columns={2}
-            value={i.doel}
-            onChange={set('doel')}
-            options={[
-              ['kracht', DOELEN.kracht, '4–6 reps'],
-              ['spiermassa', DOELEN.spiermassa, '8–12 reps'],
-              ['fitheid', 'Fitheid', '12–15 reps'],
-              ['vetverlies', DOELEN.vetverlies, 'Kracht + cardio'],
-            ]}
-          />
-          <h3>Wat is je niveau?</h3>
-          <Choices
-            label="Niveau"
-            columns={2}
-            value={i.niveau}
-            onChange={set('niveau')}
-            options={[
-              ['beginner', NIVEAUS.beginner, 'Minder dan 1 jaar'],
-              ['gevorderd', NIVEAUS.gevorderd, '1 jaar of langer'],
-            ]}
-          />
-          <h3>Hoeveel dagen per week?</h3>
-          <Choices
-            label="Dagen per week"
-            columns={4}
-            value={i.dagen}
-            onChange={set('dagen')}
-            options={[
-              [2, '2'],
-              [3, '3'],
-              [4, '4'],
-              [5, '5'],
-            ]}
-          />
-          <p className="small muted">{SPLIT_HINT[i.dagen]}</p>
-          <h3>Hoeveel tijd per training?</h3>
-          <Choices
-            label="Tijd per training"
-            columns={4}
-            value={i.tijd}
-            onChange={set('tijd')}
-            options={[
-              [30, '30', 'min'],
-              [45, '45', 'min'],
-              [60, '60', 'min'],
-              [75, '75+', 'min'],
-            ]}
-          />
-          <h3>Welke apparatuur heb je?</h3>
-          <Choices
-            label="Apparatuur"
-            columns={1}
-            value={i.apparatuur}
-            onChange={set('apparatuur')}
-            options={[
-              ['gym', APPARATUUR_KEUZES.gym, 'Stangen, machines, kabels'],
-              ['dumbbells', APPARATUUR_KEUZES.dumbbells, 'Thuis of in een kleine gym'],
-              ['thuis', 'Zonder spullen', 'Lichaamsgewicht, stoel, handdoek'],
-            ]}
-          />
-        </section>
-        <button className="btn primary block big" onClick={() => onSubmit(i)}>
-          {onCancel ? 'Nieuw schema maken' : 'Maak mijn schema'}
-        </button>
-        {onCancel && (
-          <button className="btn ghost block" onClick={onCancel}>
-            Annuleren
-          </button>
-        )}
-      </main>
-    </div>
+    <>
+      <PlanView plan={plan} active={active} onOpenWorkout={onOpenWorkout} onEdit={() => setVragen(true)} />
+      {vragenlijst}
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Schema
+// View
 
 function PlanView({
   plan,
@@ -379,7 +262,7 @@ function PlanView({
             Opnieuw genereren
           </button>
           <button className="btn ghost" onClick={onEdit}>
-            Invoer aanpassen
+            Profiel aanpassen
           </button>
         </div>
         {week !== 4 && (

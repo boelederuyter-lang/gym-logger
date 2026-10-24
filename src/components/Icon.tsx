@@ -9,6 +9,8 @@ const PATHS = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   close: 'M6 6l12 12M18 6 6 18',
   down: 'm6 9 6 6 6-6',
+  back: 'm15 5-7 7 7 7',
+  chevron: 'm9 5 7 7-7 7',
   schema: 'M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 12h3M8 16h6',
   share: 'M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6',
   check: 'm5 12.5 4.5 4.5L19 7.5',

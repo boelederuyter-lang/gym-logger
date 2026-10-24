@@ -11,6 +11,7 @@ import { estimateSeconds, fitToTime } from './coach/time';
 import type { EigenCoachInfo } from './coach/exercises';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
+import { getProfiel, restoreProfiel } from './coach/profileStore';
 
 export type { Equipment };
 
@@ -459,6 +460,7 @@ export async function exportData(): Promise<string> {
     workouts,
     sets,
     plan,
+    profiel: getProfiel(),
   });
 }
 
@@ -475,6 +477,7 @@ export async function importData(json: string) {
   });
   await syncLibrary();
   if (data.plan) restorePlan(data.plan);
+  if (data.profiel) restoreProfiel(data.profiel);
 }
 
 /**
