@@ -218,6 +218,7 @@ export interface PlanTarget {
   repRange?: [number, number]; // prefilled reps are kept within this range
   weightDelta?: number; // added to last time's weight (schema progression)
   progression?: { range: [number, number]; increment: number }; // double progression for programs
+  startWeight?: number; // used when there is no history yet (coach start weight)
 }
 
 /**
@@ -244,7 +245,7 @@ export async function addPlannedSets(
       workoutId,
       exerciseId,
       order: maxOrder + 1 + i,
-      weight: p?.weight != null ? Math.max(0, p.weight + delta) : null,
+      weight: p?.weight != null ? Math.max(0, p.weight + delta) : (target.startWeight ?? null),
       reps: up ? pg!.range[0] : clampReps(p?.reps ?? targetReps, target.repRange),
       done: false,
     } as WorkoutSet;

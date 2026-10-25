@@ -4,10 +4,10 @@ import { db, type Workout } from '../db';
 import { ActionSheet, type Action } from '../components/ActionSheet';
 import { Icon } from '../components/Icon';
 import { Thumb } from '../components/Thumb';
-import { APPARATUUR, BIBLIOTHEEK, LOGGER_SPIER } from '../plan/exercises';
+import { APPARATUUR, BIBLIOTHEEK } from '../plan/exercises';
 import { Sheet } from '../components/Sheet';
 import { Onboarding } from './Onboarding';
-import { naarOudeInvoer, vanOudeInvoer, type Profiel } from '../coach/profile';
+import { DAG_NAMEN, DOEL_TEKST, MATERIAAL_TEKST, NIVEAU_TEKST, vanOudeInvoer, type Profiel } from '../coach/profile';
 import { saveProfiel, useProfiel } from '../coach/profileStore';
 import {
   APPARATUUR_KEUZES,
@@ -23,9 +23,11 @@ import {
   type WeekDag,
   varianten,
 } from '../plan/generator';
-import { loggedDays, startPlanDay } from '../plan/start';
+import { currentWeek, loggedDays, startPlanDay } from '../plan/start';
+import { coachVarianten } from '../coach/generator';
+import { LIBRARY_BY_SLUG } from '../library/exercises';
 import {
-  createPlan,
+  createCoachPlan,
   regeneratePlan,
   setWeek,
   shareLink,
@@ -49,7 +51,7 @@ export function PlanScreen({ active, onOpenWorkout }: Props) {
 
   function klaar(p: Profiel) {
     saveProfiel(p);
-    createPlan(naarOudeInvoer(p));
+    createCoachPlan(p);
     setVragen(false);
     window.scrollTo({ top: 0 });
     showToast('Je schema staat klaar 💪');
@@ -119,8 +121,11 @@ function PlanView({
   const workouts = useLiveQuery(() => db.workouts.toArray(), []);
   const [confirm, setConfirm] = useState<{ title: string; actions: Action[] } | null>(null);
   const [swapping, setSwapping] = useState<{ dag: number; index: number } | null>(null);
-  const { invoer, schema, week, blok } = plan;
-  const dagen = weekSchema(schema, week);
+  const { invoer, schema, blok, profiel } = plan;
+  const coach = !!schema.coach;
+  // Coach schemas follow the calendar week; old schemas the week of their 4-week block.
+  const week = currentWeek(plan);
+  const dagen = weekSchema(schema, coach ? 1 : week);
   const logged = loggedDays(plan, workouts ?? []);
   const isDone = (w: number, d: number) => logged.has(`${w}-${d}`) || !!plan.gedaan[`${w}-${d}`];
   const weekDone = (w: number) => schema.dagen.every((_, d) => isDone(w, d));
@@ -177,7 +182,7 @@ function PlanView({
       <header className="page-header home-header">
         <div>
           <span className="date">
-            Blok {blok} · gestart{' '}
+            {coach ? 'Je coach · sinds' : `Blok ${blok} · gestart`}{' '}
             {new Date(plan.gestart).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
           </span>
           <h1>{schema.split}</h1>
@@ -187,56 +192,81 @@ function PlanView({
         </button>
       </header>
       <main className="content">
-        <div className="tag-row">
-          <span className="tag">{DOELEN[invoer.doel]}</span>
-          <span className="tag">{NIVEAUS[invoer.niveau]}</span>
-          <span className="tag">{invoer.dagen}× per week</span>
-          <span className="tag">{invoer.tijd === 75 ? '75+' : invoer.tijd} min</span>
-          <span className="tag">{APPARATUUR_KEUZES[invoer.apparatuur]}</span>
-        </div>
-
-        <div className="segmented week-tabs" role="tablist" aria-label="Week van het blok">
-          {WEKEN.map((w) => (
-            <button
-              key={w.nr}
-              role="tab"
-              aria-selected={w.nr === week}
-              className={w.nr === week ? 'active' : ''}
-              onClick={() => setWeek(w.nr)}
-            >
-              <span>
-                Week {w.nr}
-                {weekDone(w.nr) ? ' ✓' : ''}
-              </span>
-              <small>{w.label}</small>
-            </button>
-          ))}
-        </div>
-
-        <section className="week-note">
-          <p>{WEKEN[week - 1].uitleg}</p>
-          {(week === 3 || week === 4 || (week === 1 && blok > 1)) && (
-            <p className="small muted">Bij Start training staan de aangepaste gewichten al voor je klaar.</p>
-          )}
-          {invoer.doel === 'vetverlies' && (
-            <p className="small muted">
-              Vetverlies: cardio doe je na de krachttraining. Op rustdagen helpt 30–45 min wandelen. Het meeste
-              resultaat komt van een klein calorietekort en genoeg eiwit.
-            </p>
-          )}
-          {invoer.apparatuur !== 'gym' && (
-            <p className="small muted">
-              Lichaamsgewicht te makkelijk? Kies een zwaardere variant of zak langzamer, zodat de laatste reps zwaar
-              zijn.
-            </p>
-          )}
-          <div className="progress plan-progress">
-            <div className="progress-fill" style={{ width: `${(doneCount / schema.dagen.length) * 100}%` }} />
+        {coach && profiel ? (
+          <CoachTags profiel={profiel} />
+        ) : (
+          <div className="tag-row">
+            <span className="tag">{DOELEN[invoer.doel]}</span>
+            <span className="tag">{NIVEAUS[invoer.niveau]}</span>
+            <span className="tag">{invoer.dagen}× per week</span>
+            <span className="tag">{invoer.tijd === 75 ? '75+' : invoer.tijd} min</span>
+            <span className="tag">{APPARATUUR_KEUZES[invoer.apparatuur]}</span>
           </div>
-          <span className="small muted">
-            {doneCount} van {schema.dagen.length} trainingen gedaan
-          </span>
-        </section>
+        )}
+        {coach ? (
+          <section className="week-note">
+            <p>
+              <strong>Deze week:</strong> {doneCount} van {schema.dagen.length} trainingen gedaan.
+            </p>
+            <div className="progress plan-progress">
+              <div className="progress-fill" style={{ width: `${(doneCount / schema.dagen.length) * 100}%` }} />
+            </div>
+            <p className="small muted">
+              Haal je bij een oefening alle sets bovenin het repbereik? Dan staat er de volgende keer meer gewicht
+              klaar.
+            </p>
+            {profiel && profiel.blessures.length > 0 && (
+              <p className="small muted">
+                Oefeningen die je {profiel.blessures.join(' of ')} belasten heb ik weggelaten.
+              </p>
+            )}
+          </section>
+        ) : (
+          <>
+            <div className="segmented week-tabs" role="tablist" aria-label="Week van het blok">
+              {WEKEN.map((w) => (
+                <button
+                  key={w.nr}
+                  role="tab"
+                  aria-selected={w.nr === week}
+                  className={w.nr === week ? 'active' : ''}
+                  onClick={() => setWeek(w.nr)}
+                >
+                  <span>
+                    Week {w.nr}
+                    {weekDone(w.nr) ? ' ✓' : ''}
+                  </span>
+                  <small>{w.label}</small>
+                </button>
+              ))}
+            </div>
+
+            <section className="week-note">
+              <p>{WEKEN[week - 1].uitleg}</p>
+              {(week === 3 || week === 4 || (week === 1 && blok > 1)) && (
+                <p className="small muted">Bij Start training staan de aangepaste gewichten al voor je klaar.</p>
+              )}
+              {invoer.doel === 'vetverlies' && (
+                <p className="small muted">
+                  Vetverlies: cardio doe je na de krachttraining. Op rustdagen helpt 30–45 min wandelen. Het meeste
+                  resultaat komt van een klein calorietekort en genoeg eiwit.
+                </p>
+              )}
+              {invoer.apparatuur !== 'gym' && (
+                <p className="small muted">
+                  Lichaamsgewicht te makkelijk? Kies een zwaardere variant of zak langzamer, zodat de laatste reps zwaar
+                  zijn.
+                </p>
+              )}
+              <div className="progress plan-progress">
+                <div className="progress-fill" style={{ width: `${(doneCount / schema.dagen.length) * 100}%` }} />
+              </div>
+              <span className="small muted">
+                {doneCount} van {schema.dagen.length} trainingen gedaan
+              </span>
+            </section>
+          </>
+        )}
 
         {dagen.map((dag, d) => (
           <DayCard
@@ -252,7 +282,7 @@ function PlanView({
           />
         ))}
 
-        {week === 4 && (
+        {!coach && week === 4 && (
           <button className="btn primary block big" onClick={askNewBlock}>
             Nieuw blok starten
           </button>
@@ -265,14 +295,14 @@ function PlanView({
             Profiel aanpassen
           </button>
         </div>
-        {week !== 4 && (
+        {!coach && week !== 4 && (
           <button className="link center" onClick={askNewBlock}>
             Nieuw blok starten
           </button>
         )}
       </main>
       {confirm && <ActionSheet title={confirm.title} actions={confirm.actions} onClose={() => setConfirm(null)} />}
-      {swapping && <SwapSheet schema={schema} {...swapping} onClose={() => setSwapping(null)} />}
+      {swapping && <SwapSheet schema={schema} profiel={profiel} {...swapping} onClose={() => setSwapping(null)} />}
     </div>
   );
 }
@@ -301,7 +331,7 @@ function DayCard({
       <div className="plan-day-head">
         <div className="grow">
           <span className="eyebrow">
-            Dag {index + 1} · {dag.focus}
+            {dag.weekdag != null ? DAG_NAMEN[dag.weekdag] : `Dag ${index + 1}`} · {dag.focus}
           </span>
           <strong className="card-title block">{dag.naam}</strong>
           <span className="small muted">
@@ -319,6 +349,7 @@ function DayCard({
           {logged ? 'Gelogd' : done ? 'Gedaan' : 'Afvinken'}
         </button>
       </div>
+      {dag.uitleg && <p className="small day-explain">{dag.uitleg}</p>}
       <ol className="plan-list">
         {dag.oefeningen.map((o, i) => (
           <li key={o.id}>
@@ -344,7 +375,7 @@ function ExerciseRow({ o, nr, onSwap }: { o: SchemaOefening; nr: number; onSwap:
     <details className="plan-ex">
       <summary>
         {o.slug ? (
-          <Thumb exercise={{ slug: o.slug, muscle: LOGGER_SPIER[o.patroon] }} size={40} />
+          <Thumb exercise={{ slug: o.slug, muscle: LIBRARY_BY_SLUG.get(o.slug)?.muscle ?? '' }} size={40} />
         ) : (
           <span className="plan-nr">{nr}</span>
         )}
@@ -357,10 +388,18 @@ function ExerciseRow({ o, nr, onSwap }: { o: SchemaOefening; nr: number; onSwap:
             · rust {formatRust(o.rust)}
           </span>
         </span>
-        <Badge text={o.advies} />
+        <Badge text={o.advies ?? (o.prioriteit ? '+1 set' : null)} />
         <Icon name="down" size={18} />
       </summary>
       <div className="plan-tip">
+        {o.startgewicht != null ? (
+          <p className="start-hint">
+            Startgewicht: <strong>{String(o.startgewicht).replace('.', ',')} kg</strong>
+            {o.apparatuur === 'dumbbells' ? ' per hand' : ''}
+          </p>
+        ) : (
+          o.startHint && <p className="start-hint">{o.startHint}</p>
+        )}
         <p className="tip">{o.tip}</p>
         <div className="tag-row">
           <span className="tag">{o.spiergroep}</span>
@@ -378,23 +417,39 @@ function ExerciseRow({ o, nr, onSwap }: { o: SchemaOefening; nr: number; onSwap:
 /** Pick another exercise with the same movement pattern for one spot in the schema. */
 function SwapSheet({
   schema,
+  profiel,
   dag,
   index,
   onClose,
 }: {
   schema: Schema;
+  profiel?: Profiel;
   dag: number;
   index: number;
   onClose: () => void;
 }) {
   const huidig = schema.dagen[dag]?.oefeningen[index];
-  const opties = varianten(schema, dag, index);
   if (!huidig) return null;
+  const opties =
+    schema.coach && profiel
+      ? coachVarianten(schema, profiel, dag, index).map((c) => ({
+          id: c.id,
+          naam: c.naam,
+          slug: c.id as string | undefined,
+          sub: `${c.materiaal.filter((m) => m !== 'lichaamsgewicht' || c.materiaal.length === 1).join(', ')} · ${c.primair.join(', ')}`,
+        }))
+      : varianten(schema, dag, index).map((o) => ({
+          id: o.id,
+          naam: o.naam,
+          slug: BIBLIOTHEEK[o.id] as string | undefined,
+          sub: `${APPARATUUR[o.apparatuur]} · ${o.type === 'compound' ? 'compound' : 'isolatie'}`,
+        }));
   return (
     <Sheet title={`Wissel ${huidig.naam}`} onClose={onClose}>
       <p className="small muted">
-        Oefeningen die hetzelfde bewegingspatroon trainen en passen bij je apparatuur. Sets, reps en rust blijven
-        passend bij je doel.
+        {schema.coach
+          ? 'Oefeningen met hetzelfde bewegingspatroon die passen bij je materiaal, niveau en blessures. De beste vervangers staan bovenaan.'
+          : 'Oefeningen die hetzelfde bewegingspatroon trainen en passen bij je apparatuur. Sets, reps en rust blijven passend bij je doel.'}
       </p>
       {opties.length === 0 ? (
         <p className="empty">Er is geen andere variant voor deze plek met jouw apparatuur.</p>
@@ -410,16 +465,14 @@ function SwapSheet({
                   onClose();
                 }}
               >
-                {BIBLIOTHEEK[o.id] ? (
-                  <Thumb exercise={{ slug: BIBLIOTHEEK[o.id], muscle: LOGGER_SPIER[o.patroon] }} size={40} />
+                {o.slug ? (
+                  <Thumb exercise={{ slug: o.slug, muscle: LIBRARY_BY_SLUG.get(o.slug)?.muscle ?? '' }} size={40} />
                 ) : (
                   <span className="plan-nr">·</span>
                 )}
                 <span className="grow">
                   <strong className="block">{o.naam}</strong>
-                  <span className="small muted">
-                    {APPARATUUR[o.apparatuur]} · {o.type === 'compound' ? 'compound' : 'isolatie'}
-                  </span>
+                  <span className="small muted">{o.sub}</span>
                 </span>
               </button>
             </li>
@@ -427,6 +480,25 @@ function SwapSheet({
         </ul>
       )}
     </Sheet>
+  );
+}
+
+/** Tags with the questionnaire answers above a coach schema. */
+function CoachTags({ profiel }: { profiel: Profiel }) {
+  const materiaal = profiel.materiaalKeuze === 'zelf' ? 'Eigen materiaal' : MATERIAAL_TEKST[profiel.materiaalKeuze][0];
+  return (
+    <div className="tag-row">
+      <span className="tag">{DOEL_TEKST[profiel.doel][0]}</span>
+      <span className="tag">{NIVEAU_TEKST[profiel.niveau][0]}</span>
+      <span className="tag">{profiel.dagen.length}× per week</span>
+      <span className="tag">{profiel.tijd} min</span>
+      <span className="tag">{materiaal}</span>
+      {profiel.prioriteit.map((g) => (
+        <span key={g} className="tag">
+          Extra {g}
+        </span>
+      ))}
+    </div>
   );
 }
 

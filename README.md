@@ -27,16 +27,19 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 
 Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
-## Trainingsschema
+## Coach en trainingsschema
 
-Tabblad **Trainen → Schema**: vijf vragen (doel, niveau, dagen, tijd, apparatuur) en je krijgt een blok van 4 weken met progressie (basis, +1 rep, zwaarder, deload). Bij vetverlies komt er na elke training een cardioblok bij.
+Tabblad **Trainen → Schema**: een korte vragenlijst (doel, ervaring, dagen, tijd, materiaal, prioriteit, blessures, kracht) en de coach maakt je schema. Alles draait op je telefoon met vaste regels: geen AI, geen internet.
 
-- **Start training** bij een dag opent een gelogde workout met de sets, reps en rust van die week. In week 3 staat het gewicht al +2,5 kg (boven) of +5 kg (onder) hoger klaar, in de deload weer terug.
-- Afgeronde schema-workouts tellen automatisch als gedaan; het startscherm zet de volgende schema-training klaar.
-- **Wissel oefening**: klap een oefening open en kies een variant met hetzelfde bewegingspatroon. Een gedeelde link neemt je wissels mee.
-- Schema-oefeningen zijn gekoppeld aan de oefeningenbibliotheek, dus PR's, voortgang en animaties werken gewoon. Oefeningen die niet in de bibliotheek staan worden als eigen oefening aangemaakt.
-- Met de deelknop stuur je een link waarmee een vriend precies hetzelfde schema krijgt. Het oude adres `/schema/` verwijst door.
-- Code: `src/plan/` (oefeningendatabase, generator, opslag, workouts starten) en `src/screens/PlanScreen.tsx`.
+- **Indeling** op basis van je dagen: 2 = full body A/B, 3 = full body A/B/C (ervaren: push/pull/legs), 4 = upper/lower, 5 = upper/lower + push/pull/legs, 6 = push/pull/legs ×2.
+- **Oefeningen** passen bij je materiaal en niveau en belasten geen geblesseerd gewricht. Bekende basisoefeningen gaan voor.
+- **Reps** volgen je doel, **sets en aantal oefeningen** je tijd. Prioriteitsspieren krijgen 1–2 extra sets per week.
+- **Startgewicht**: vul je je kracht in, dan rekent de coach met de Epley-formule een startgewicht uit (iets aan de lichte kant). Anders staat er welk gewicht je moet kiezen.
+- **Wissel oefening** per plek, **Opnieuw genereren** voor andere keuzes, **Profiel aanpassen** voor andere antwoorden.
+- Elke week begin je opnieuw met afvinken; haal je alle sets bovenin het repbereik, dan staat de volgende keer meer gewicht klaar.
+- Met de deelknop krijgt een vriend precies hetzelfde schema (zonder jouw kracht of lichaamsgewicht).
+- Schema's van het oude formulier (blok van 4 weken) blijven werken tot je je profiel aanpast.
+- Code: `src/coach/` (oefeningendatabase, profiel, generator; los te testen) en `src/plan/` (opslag, workouts starten), schermen `src/screens/Onboarding.tsx` en `src/screens/PlanScreen.tsx`.
 
 ## Ontwikkelen
 

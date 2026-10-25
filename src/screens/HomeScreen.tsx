@@ -60,7 +60,8 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
 
   // Next up from the schema: the first day of this week that isn't done yet.
   const planNext = plan ? nextDay(plan, loggedDays(plan, all)) : null;
-  const planDay = plan && planNext != null ? weekSchema(plan.schema, plan.week)[planNext] : null;
+  const planDay =
+    plan && planNext != null ? weekSchema(plan.schema, plan.schema.coach ? 1 : plan.week)[planNext] : null;
 
   async function startPlan() {
     if (!plan || planNext == null) return;
@@ -165,7 +166,9 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
         {plan && planDay && !active && (
           <section className="card next-card">
             <span className="eyebrow">
-              Schema · week {plan.week} · dag {planNext! + 1}
+              {plan.schema.coach
+                ? `Schema · dag ${planNext! + 1}`
+                : `Schema · week ${plan.week} · dag ${planNext! + 1}`}
             </span>
             <strong className="card-title big-title">{planDay.naam}</strong>
             <span className="small muted">
@@ -191,9 +194,17 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           <section className="card next-card">
             <span className="eyebrow">Schema</span>
             <strong className="card-title big-title">
-              {plan.week < 4 ? `Week ${plan.week} afgerond! 🎉` : 'Blok afgerond! 🎉'}
+              {plan.schema.coach
+                ? 'Week afgerond! 🎉'
+                : plan.week < 4
+                  ? `Week ${plan.week} afgerond! 🎉`
+                  : 'Blok afgerond! 🎉'}
             </strong>
-            {plan.week < 4 ? (
+            {plan.schema.coach ? (
+              <span className="small muted">
+                Alle trainingen van deze week gedaan. Maandag staat je schema weer klaar.
+              </span>
+            ) : plan.week < 4 ? (
               <button className="btn primary block big" onClick={() => setWeek(plan.week + 1)}>
                 Door naar week {plan.week + 1}
               </button>

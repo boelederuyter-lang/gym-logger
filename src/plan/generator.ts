@@ -11,6 +11,7 @@ import {
   type Patroon,
   type PlanOefening,
 } from './exercises';
+import type { Patroon as CoachPatroon } from '../coach/exercises';
 
 export type Doel = 'kracht' | 'spiermassa' | 'fitheid' | 'vetverlies';
 export type Niveau = 'beginner' | 'gevorderd';
@@ -30,7 +31,7 @@ export interface SchemaOefening {
   slug?: string;
   naam: string;
   spiergroep: string;
-  patroon: Patroon;
+  patroon: Patroon | CoachPatroon;
   apparatuur: string;
   zonderGewicht: boolean;
   type: 'compound' | 'isolatie';
@@ -41,6 +42,12 @@ export interface SchemaOefening {
   reps: [number, number];
   rust: number;
   advies?: string | null;
+  // Alleen in schema's van de coach:
+  rol?: 'hoofd' | 'compound' | 'isolatie';
+  stap?: number; // kg per stap
+  startgewicht?: number; // voorgesteld startgewicht als er nog geen geschiedenis is
+  startHint?: string; // uitleg als we geen startgewicht weten
+  prioriteit?: boolean; // extra set voor een prioriteitsspier
 }
 
 export interface Cardio {
@@ -63,6 +70,8 @@ export interface SchemaDag {
   focus: string;
   oefeningen: SchemaOefening[];
   cardio: Cardio | null;
+  uitleg?: string; // coach: twee zinnen over deze dag
+  weekdag?: number; // coach: 0 = maandag
 }
 
 export interface Schema {
@@ -71,6 +80,8 @@ export interface Schema {
   seed: number;
   split: string;
   dagen: SchemaDag[];
+  /** Gemaakt door de coach (fase 3) in plaats van het oude formulier. */
+  coach?: true;
 }
 
 export interface WeekDag extends SchemaDag {

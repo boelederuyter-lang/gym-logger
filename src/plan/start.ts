@@ -1,5 +1,5 @@
 import { addPlannedSets, db, syncLibrary, type Exercise, type PlanRef, type Workout } from '../db';
-import { LOGGER_APPARATUUR, LOGGER_SPIER, OEFENINGEN } from './exercises';
+import { LOGGER_APPARATUUR, LOGGER_SPIER, OEFENINGEN, type Patroon } from './exercises';
 import { weekSchema, type SchemaOefening } from './generator';
 import type { PlanState } from './store';
 
@@ -24,7 +24,7 @@ export async function loggerExercise(o: SchemaOefening): Promise<Exercise> {
   const id = await db.exercises.add({
     name: o.naam,
     aliases: [],
-    muscle: LOGGER_SPIER[o.patroon],
+    muscle: LOGGER_SPIER[o.patroon as Patroon] ?? 'Hele lichaam',
     equipment: bron ? LOGGER_APPARATUUR[bron.apparatuur] : 'other',
     tip: o.tip,
     custom: true,
@@ -52,7 +52,7 @@ export function weightDelta(o: SchemaOefening, week: number, blok: number): numb
 
 /** Starts a logged workout for one day of the schema, in the current week. */
 export async function startPlanDay(plan: PlanState, dagIndex: number): Promise<number> {
-  const dag = weekSchema(plan.schema, plan.week)[dagIndex];
+  const dag = weekSchema(plan.schema, plan.schema.coach ? 1 : plan.week)[dagIndex];
   const exercises: Exercise[] = [];
   for (const o of dag.oefeningen) exercises.push(await loggerExercise(o));
 
@@ -61,36 +61,67 @@ export async function startPlanDay(plan: PlanState, dagIndex: number): Promise<n
     dag.oefeningen.forEach((o, i) => (rest[exercises[i].id] = o.rust));
     const ref: PlanRef = { seed: plan.schema.seed, blok: plan.blok, week: plan.week, dag: dagIndex };
     const workoutId = await db.workouts.add({
-      name: `${dag.naam} · week ${plan.week}`,
+      name: plan.schema.coach ? dag.naam : `${dag.naam} · week ${plan.week}`,
       startedAt: Date.now(),
       exerciseIds: exercises.map((e) => e.id),
       rest,
       plan: ref,
     } as Workout);
     for (const [i, o] of dag.oefeningen.entries()) {
-      await addPlannedSets(workoutId, exercises[i].id, o.sets, o.reps[0], {
-        repRange: o.reps,
-        weightDelta: weightDelta(o, plan.week, plan.blok),
-      });
+      await addPlannedSets(
+        workoutId,
+        exercises[i].id,
+        o.sets,
+        o.reps[0],
+        plan.schema.coach
+          ? // Coach schema: double progression per exercise, start weight when there's no history yet.
+            {
+              repRange: o.reps,
+              progression: o.zonderGewicht ? undefined : { range: o.reps, increment: o.stap ?? 2.5 },
+              startWeight: o.startgewicht,
+            }
+          : { repRange: o.reps, weightDelta: weightDelta(o, plan.week, plan.blok) },
+      );
     }
     return workoutId;
   });
 }
 
-/** Days of the current block that were logged, as `${week}-${dag}` keys. */
+/** Calendar week as a number, e.g. 202643 for week 43 of 2026 (ISO weeks start on Monday). */
+export function isoWeek(time: number): number {
+  const d = new Date(time);
+  const day = (d.getDay() + 6) % 7; // 0 = Monday
+  // The Thursday of this week decides the year; its day of the year decides the week number.
+  const thursday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day + 3);
+  const dayOfYear = Math.round((thursday.getTime() - new Date(thursday.getFullYear(), 0, 1).getTime()) / 86400000) + 1;
+  return thursday.getFullYear() * 100 + Math.ceil(dayOfYear / 7);
+}
+
+/**
+ * The week a schema is in. Old schemas run in a 4-week block (week 1-4); coach schemas follow
+ * the calendar, so the checklist starts fresh every Monday.
+ */
+export function currentWeek(plan: PlanState, now = Date.now()): number {
+  return plan.schema.coach ? isoWeek(now) : plan.week;
+}
+
+/** Days of the current block (coach: of each calendar week) that were logged, as `${week}-${dag}` keys. */
 export function loggedDays(plan: PlanState, workouts: Workout[]): Set<string> {
   const keys = new Set<string>();
   for (const w of workouts) {
     const p = w.plan;
-    if (w.endedAt && p && p.seed === plan.schema.seed && p.blok === plan.blok) keys.add(`${p.week}-${p.dag}`);
+    if (!w.endedAt || !p || p.seed !== plan.schema.seed) continue;
+    if (plan.schema.coach) keys.add(`${isoWeek(w.startedAt)}-${p.dag}`);
+    else if (p.blok === plan.blok) keys.add(`${p.week}-${p.dag}`);
   }
   return keys;
 }
 
 /** The first day of the current week that isn't done yet, or null when the week is complete. */
-export function nextDay(plan: PlanState, logged: Set<string>): number | null {
+export function nextDay(plan: PlanState, logged: Set<string>, now = Date.now()): number | null {
+  const week = currentWeek(plan, now);
   for (let d = 0; d < plan.schema.dagen.length; d++) {
-    const k = `${plan.week}-${d}`;
+    const k = `${week}-${d}`;
     if (!logged.has(k) && !plan.gedaan[k]) return d;
   }
   return null;

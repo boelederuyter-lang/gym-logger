@@ -10,7 +10,7 @@ import { ExercisesScreen } from './screens/ExercisesScreen';
 import { HistoryScreen, WorkoutDetail } from './screens/HistoryScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ActionSheet } from './components/ActionSheet';
-import { createPlan, getPlan, parseShareHash } from './plan/store';
+import { adoptShared, getPlan, parseShareHash } from './plan/store';
 import { showToast } from './toast';
 import { SettingsSheet } from './screens/SettingsSheet';
 import { TemplateEditor } from './screens/TemplateEditor';
@@ -29,9 +29,9 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
 
 export function App() {
   // #schema (old /schema/ address) and shared schema links open the Schema tab.
-  const [tab, setTab] = useState<Tab>(() => (/^#(schema|s=)/.test(location.hash) ? 'train' : 'home'));
+  const [tab, setTab] = useState<Tab>(() => (/^#(schema|s=|c=)/.test(location.hash) ? 'train' : 'home'));
   const [trainView, setTrainView] = useState<TrainView>(() =>
-    /^#(schema|s=)/.test(location.hash) ? 'schema' : initialTrainView(!!getPlan()),
+    /^#(schema|s=|c=)/.test(location.hash) ? 'schema' : initialTrainView(!!getPlan()),
   );
   const openSchema = () => {
     setTrainView('schema');
@@ -58,7 +58,7 @@ export function App() {
 
   function acceptShared() {
     if (!shared) return;
-    createPlan(shared.invoer, shared.seed, shared.wissels);
+    adoptShared(shared);
     setShared(null);
     openSchema();
     showToast('Gedeeld schema geladen');

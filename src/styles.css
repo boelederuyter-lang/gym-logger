@@ -2039,3 +2039,14 @@ h3 {
 .coach-intro .center {
   text-align: center;
 }
+.day-explain {
+  margin: 0;
+  color: var(--muted);
+}
+.start-hint {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--red-soft);
+  font-size: 14px;
+}

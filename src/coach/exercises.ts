@@ -454,11 +454,11 @@ export const COACH_OEFENINGEN: CoachOefening[] = [
   o('nordic-curl', 'Nordic curl', 'isolatie', ['hamstrings'], ['billen'], ['lichaamsgewicht'],
     ['knie'], ['leg-curl', 'dumbbell-leg-curl'], { niveau: E, reps: [3, 8] }),
   o('kuitheffen', 'Standing calf raise', 'isolatie', ['kuiten'], [], ['machine'],
-    ['knie'], ['kuitheffen-zittend', 'single-leg-calf-raise'], { reps: [10, 20] }),
+    [], ['kuitheffen-zittend', 'single-leg-calf-raise'], { reps: [10, 20] }),
   o('kuitheffen-zittend', 'Seated calf raise', 'isolatie', ['kuiten'], [], ['machine'],
-    ['knie'], ['kuitheffen', 'single-leg-calf-raise'], { reps: [12, 20] }),
+    [], ['kuitheffen', 'single-leg-calf-raise'], { reps: [12, 20] }),
   o('single-leg-calf-raise', 'Single-leg calf raise', 'isolatie', ['kuiten'], [], ['lichaamsgewicht'],
-    ['knie'], ['kuitheffen', 'kuitheffen-zittend'], { reps: [10, 20] }),
+    [], ['kuitheffen', 'kuitheffen-zittend'], { reps: [10, 20] }),
   o('hip-adduction', 'Hip adduction machine', 'isolatie', ['adductoren'], ['billen'], ['machine'],
     ['heup'], ['leg-extension', 'leg-curl']),
   o('hip-abduction', 'Hip abduction machine', 'isolatie', ['billen'], [], ['machine'],
@@ -500,6 +500,58 @@ export const COACH_OEFENINGEN: CoachOefening[] = [
 ];
 
 export const COACH_BY_ID = new Map(COACH_OEFENINGEN.map((c) => [c.id, c]));
+
+/**
+ * Bekende basisoefeningen: bewezen, makkelijk te doseren en in elke gym te vinden. De
+ * generator kiest deze vaker, zodat je schema niet vol exotische varianten staat.
+ */
+export const BASIS = new Set([
+  'squat',
+  'leg-press',
+  'goblet-squat',
+  'bodyweight-squat',
+  'deadlift',
+  'romanian-deadlift',
+  'dumbbell-rdl',
+  'hip-thrust',
+  'glute-bridge',
+  'lunges',
+  'reverse-lunge',
+  'bulgarian-split-squat',
+  'bankdrukken',
+  'dumbbell-bankdrukken',
+  'incline-dumbbell-press',
+  'chest-press-machine',
+  'push-up',
+  'overhead-press',
+  'dumbbell-schouderpress',
+  'shoulder-press-machine',
+  'pike-push-up',
+  'barbell-row',
+  'dumbbell-row',
+  'seated-cable-row',
+  'seated-row-machine',
+  'inverted-row',
+  'pull-up',
+  'lat-pulldown',
+  'assisted-pull-up',
+  'cable-crossover',
+  'lateral-raises',
+  'face-pulls',
+  'dumbbell-rear-delt-fly',
+  'dumbbell-curl',
+  'cable-curl',
+  'triceps-pushdown',
+  'overhead-triceps-extension',
+  'leg-extension',
+  'leg-curl',
+  'kuitheffen',
+  'single-leg-calf-raise',
+  'hip-abduction',
+  'plank',
+  'cable-crunch',
+  'dead-bug',
+]);
 
 // ---------- beschikbaar materiaal ----------
 
