@@ -36,7 +36,10 @@ Tabblad **Trainen → Schema**: een korte vragenlijst (doel, ervaring, dagen, ti
 - **Reps** volgen je doel, **sets en aantal oefeningen** je tijd. Prioriteitsspieren krijgen 1–2 extra sets per week.
 - **Startgewicht**: vul je je kracht in, dan rekent de coach met de Epley-formule een startgewicht uit (iets aan de lichte kant). Anders staat er welk gewicht je moet kiezen.
 - **Wissel oefening** per plek, **Opnieuw genereren** voor andere keuzes, **Profiel aanpassen** voor andere antwoorden.
-- Elke week begin je opnieuw met afvinken; haal je alle sets bovenin het repbereik, dan staat de volgende keer meer gewicht klaar.
+- **Progressie-engine**: bij elke training staan gewicht en reps al klaar, met de reden erbij ("Vorige keer 3×10 gehaald, dus +2,5 kg"). Regels: dubbele progressie, een set onder de ondergrens = zelfde gewicht, 2× vastgezeten = 10% lichter, 3× vast na een deload = ander repbereik of alternatief, RPE 10 op set 1 = niet zwaarder, RPE ≤7 op alle sets = extra stap, lichaamsgewicht = meer reps en daarna een zwaardere variant. Na 5 weken op rij (of als 3+ oefeningen achteruitgaan) volgt een herstelweek met minder sets. Wat je zelf invult gaat voor.
+- Na het afvinken van een set kun je met één tik aangeven hoe zwaar hij was (RPE 6–10), of overslaan.
+- Trillen bij een record en als de rust voorbij is (in de App Store-app; Safari op de iPhone kan niet trillen).
+- Elke week begin je opnieuw met afvinken.
 - Met de deelknop krijgt een vriend precies hetzelfde schema (zonder jouw kracht of lichaamsgewicht).
 - Schema's van het oude formulier (blok van 4 weken) blijven werken tot je je profiel aanpast.
 - Code: `src/coach/` (oefeningendatabase, profiel, generator; los te testen) en `src/plan/` (opslag, workouts starten), schermen `src/screens/Onboarding.tsx` en `src/screens/PlanScreen.tsx`.

@@ -2050,3 +2050,46 @@ h3 {
   background: var(--red-soft);
   font-size: 14px;
 }
+
+/* ---------- coach in the workout ---------- */
+
+.coach-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--red-soft);
+  font-size: 14px;
+  line-height: 1.35;
+}
+.coach-banner {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--field);
+  border: 1px solid var(--field-border);
+}
+.coach-banner p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.rpe-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+.rpe-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rpe-chips .chip {
+  min-width: 44px;
+  padding: 8px 0;
+  text-align: center;
+  font-weight: 700;
+}

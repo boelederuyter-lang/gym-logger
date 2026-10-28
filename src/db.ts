@@ -56,6 +56,15 @@ export interface Workout {
   plan?: PlanRef; // set when the workout was started from the training schema
   progress?: Record<number, number>; // kg added per exercise compared to last time (double progression)
   supersets?: number[]; // exercises done as a superset with the next one in exerciseIds
+  coach?: Record<number, CoachAdvies>; // coach advice per exercise, shown on the exercise card
+  herstel?: string; // set when this workout is part of a recovery week (the reason)
+}
+
+/** What the coach suggested for an exercise at the start of a workout. */
+export interface CoachAdvies {
+  soort: string;
+  gewicht: number | null;
+  reden: string;
 }
 
 /** Which day of the training schema a workout belongs to. */
@@ -252,6 +261,29 @@ export async function addPlannedSets(
   });
   await db.sets.bulkAdd(rows);
   return up ? pg!.increment : 0;
+}
+
+/** Adds work sets with an explicit weight and reps each (the coach's advice). */
+export async function addTargetSets(
+  workoutId: number,
+  exerciseId: number,
+  targets: { weight: number | null; reps: number }[],
+) {
+  const existing = await db.sets.where({ workoutId, exerciseId }).toArray();
+  const maxOrder = Math.max(-1, ...existing.map((s) => s.order));
+  await db.sets.bulkAdd(
+    targets.map(
+      (t, i) =>
+        ({
+          workoutId,
+          exerciseId,
+          order: maxOrder + 1 + i,
+          weight: t.weight,
+          reps: t.reps,
+          done: false,
+        }) as WorkoutSet,
+    ),
+  );
 }
 
 function clampReps(reps: number | null, range?: [number, number]): number | null {

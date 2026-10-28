@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   addExercisesToWorkout,
   addWarmupSets,
@@ -14,6 +14,7 @@ import {
   remainingMinutes,
   removeExerciseFromWorkout,
   restFor,
+  type CoachAdvies,
   type Exercise,
   type Workout,
   type WorkoutSet,
@@ -128,6 +129,12 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
             <span className="time-bar-action">Weinig tijd?</span>
           </button>
         )}
+        {workout.herstel && (
+          <section className="coach-banner">
+            <strong>Herstelweek</strong>
+            <p>{workout.herstel}</p>
+          </section>
+        )}
         {workout.exerciseIds.length === 0 && <p className="empty">Voeg je eerste oefening toe om te beginnen.</p>}
         {workout.exerciseIds.map((exId) => (
           <ExerciseCard
@@ -183,6 +190,7 @@ function ExerciseCard({
   editing: boolean;
 }) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const [rpeAsked, setRpeAsked] = useState(0);
   const prev = useLiveQuery(() => previousSets(exerciseId, workout.id), [exerciseId, workout.id]) ?? [];
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [setMenu, setSetMenu] = useState<WorkoutSet | null>(null);
@@ -299,6 +307,15 @@ function ExerciseCard({
     { label: 'Oefening verwijderen', onClick: removeExercise, danger: true },
   ];
 
+  // Coach workouts ask how heavy the set you just ticked off felt (optional, one tap).
+  const lastDone = sets
+    .filter((s) => s.done && !s.warmup && s.doneAt)
+    .sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))[0];
+  const askRpeFor =
+    workout.coach && !editing && lastDone && lastDone.rpe == null && !RPE_SKIPPED.has(lastDone.id) && rpeAsked >= 0
+      ? lastDone.id
+      : undefined;
+
   return (
     <section className={`card exercise-card ${superset ? 'superset' : ''}`}>
       {superset && (
@@ -323,6 +340,7 @@ function ExerciseCard({
         </button>
       </div>
       <NoteBlock note={exercise?.note} />
+      {workout.coach?.[exerciseId] && <CoachLine advies={workout.coach[exerciseId]} />}
       <div className="set-grid set-head">
         <span>Set</span>
         <span>Vorige</span>
@@ -331,24 +349,26 @@ function ExerciseCard({
         <span>✓</span>
       </div>
       {sets.map((s, i) => (
-        <SetRow
-          key={s.id}
-          set={s}
-          label={labels[i]}
-          prev={workIndex[i] >= 0 ? prev[workIndex[i]] : undefined}
-          onToggle={() => toggle(s, i)}
-          onMenu={() => setSetMenu(s)}
-          onEdited={() => s.done && recompute()}
-          quick={
-            s.id === nextOpen?.id
-              ? {
-                  step: settings.weightStep,
-                  weighted: exercise?.equipment !== 'bodyweight',
-                  prev: workIndex[i] >= 0 ? prev[workIndex[i]] : undefined,
-                }
-              : undefined
-          }
-        />
+        <Fragment key={s.id}>
+          <SetRow
+            set={s}
+            label={labels[i]}
+            prev={workIndex[i] >= 0 ? prev[workIndex[i]] : undefined}
+            onToggle={() => toggle(s, i)}
+            onMenu={() => setSetMenu(s)}
+            onEdited={() => s.done && recompute()}
+            quick={
+              s.id === nextOpen?.id
+                ? {
+                    step: settings.weightStep,
+                    weighted: exercise?.equipment !== 'bodyweight',
+                    prev: workIndex[i] >= 0 ? prev[workIndex[i]] : undefined,
+                  }
+                : undefined
+            }
+          />
+          {s.id === askRpeFor && <RpeAsk set={s} onDone={() => setRpeAsked((x) => x + 1)} />}
+        </Fragment>
       ))}
       <button className="btn ghost block" onClick={addSet}>
         + Set
@@ -531,4 +551,59 @@ function useNumberField(value: number | null): [string, (v: string) => void] {
     setText((t) => (parseNum(t) === value ? t : value == null ? '' : fmtWeight(value)));
   }, [value]);
   return [text, setText];
+}
+
+const COACH_ICON: Record<string, string> = {
+  start: '👋',
+  zwaarder: '⬆️',
+  'meer reps': '➕',
+  herhalen: '↔️',
+  deload: '⬇️',
+  wissel: '🔄',
+  variant: '🚀',
+  herstel: '🌙',
+};
+
+/** The coach's advice for this exercise: why these weights and reps are filled in. */
+function CoachLine({ advies }: { advies: CoachAdvies }) {
+  return (
+    <p className="coach-line">
+      <span aria-hidden="true">{COACH_ICON[advies.soort] ?? '💡'}</span>
+      <span>{advies.reden}</span>
+    </p>
+  );
+}
+
+// Sets for which you tapped "Overslaan" on the RPE question (kept while the app is open).
+const RPE_SKIPPED = new Set<number>();
+
+/** One-tap RPE after ticking a set: how many reps did you have left? */
+function RpeAsk({ set, onDone }: { set: WorkoutSet; onDone: () => void }) {
+  const pick = async (rpe: number) => {
+    await db.sets.update(set.id, { rpe });
+    onDone();
+  };
+  return (
+    <div className="rpe-ask">
+      <span className="small">
+        Hoe zwaar? <span className="muted">10 = niets meer over</span>
+      </span>
+      <div className="rpe-chips">
+        {[6, 7, 8, 9, 10].map((r) => (
+          <button key={r} className="chip" onClick={() => pick(r)} aria-label={`RPE ${r}`}>
+            {r}
+          </button>
+        ))}
+        <button
+          className="link small"
+          onClick={() => {
+            RPE_SKIPPED.add(set.id);
+            onDone();
+          }}
+        >
+          Overslaan
+        </button>
+      </div>
+    </div>
+  );
 }

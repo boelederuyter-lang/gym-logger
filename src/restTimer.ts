@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { playTones } from './audio';
+import { hapticRestDone } from './haptics';
 import { getSettings } from './settings';
 
 export interface RestState {
@@ -11,6 +12,7 @@ let state: RestState | null = null;
 const listeners = new Set<(s: RestState | null) => void>();
 
 let stopBeep: (() => void) | null = null;
+let buzz: ReturnType<typeof setTimeout> | undefined;
 
 function emit() {
   listeners.forEach((l) => l(state));
@@ -20,6 +22,9 @@ function emit() {
 function scheduleBeep() {
   stopBeep?.();
   stopBeep = null;
+  clearTimeout(buzz);
+  // The phone vibrates when rest is over, also with the beep switched off.
+  if (state) buzz = setTimeout(hapticRestDone, Math.max(0, state.endsAt - Date.now()));
   if (!state || !getSettings().restBeep) return;
   stopBeep = playTones([880, 880, 880], (state.endsAt - Date.now()) / 1000);
 }

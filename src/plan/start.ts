@@ -1,7 +1,18 @@
-import { addPlannedSets, db, syncLibrary, type Exercise, type PlanRef, type Workout } from '../db';
+import {
+  addPlannedSets,
+  addTargetSets,
+  db,
+  syncLibrary,
+  type CoachAdvies,
+  type Exercise,
+  type PlanRef,
+  type Workout,
+} from '../db';
+import { maandagVan, type Advies } from '../coach/progression';
+import { adviesVoor, bepaalHerstel } from './advies';
 import { LOGGER_APPARATUUR, LOGGER_SPIER, OEFENINGEN, type Patroon } from './exercises';
 import { weekSchema, type SchemaOefening } from './generator';
-import type { PlanState } from './store';
+import { markeerHerstel, type PlanState } from './store';
 
 const BRON = new Map(OEFENINGEN.map((o) => [o.id, o]));
 
@@ -51,37 +62,50 @@ export function weightDelta(o: SchemaOefening, week: number, blok: number): numb
 }
 
 /** Starts a logged workout for one day of the schema, in the current week. */
-export async function startPlanDay(plan: PlanState, dagIndex: number): Promise<number> {
+export async function startPlanDay(plan: PlanState, dagIndex: number, now = Date.now()): Promise<number> {
   const dag = weekSchema(plan.schema, plan.schema.coach ? 1 : plan.week)[dagIndex];
   const exercises: Exercise[] = [];
   for (const o of dag.oefeningen) exercises.push(await loggerExercise(o));
+
+  // Coach schemas: the progression engine decides weight and reps per exercise, with a reason.
+  let herstel: string | undefined;
+  const adviezen: Advies[] = [];
+  if (plan.schema.coach) {
+    const ids = new Map(dag.oefeningen.map((o, i) => [o.id, exercises[i].id]));
+    const h = await bepaalHerstel(plan, ids, now);
+    if (h.nieuw) markeerHerstel(maandagVan(now));
+    if (h.actief) herstel = h.reden;
+    for (const [i, o] of dag.oefeningen.entries()) adviezen.push(await adviesVoor(o, plan, exercises[i].id, h.actief));
+  }
 
   return db.transaction('rw', db.workouts, db.sets, db.exercises, async () => {
     const rest: Record<number, number> = {};
     dag.oefeningen.forEach((o, i) => (rest[exercises[i].id] = o.rust));
     const ref: PlanRef = { seed: plan.schema.seed, blok: plan.blok, week: plan.week, dag: dagIndex };
+    const coach: Record<number, CoachAdvies> = {};
+    adviezen.forEach((a, i) => (coach[exercises[i].id] = { soort: a.soort, gewicht: a.gewicht, reden: a.reden }));
     const workoutId = await db.workouts.add({
       name: plan.schema.coach ? dag.naam : `${dag.naam} · week ${plan.week}`,
-      startedAt: Date.now(),
+      startedAt: now,
       exerciseIds: exercises.map((e) => e.id),
       rest,
       plan: ref,
+      ...(plan.schema.coach ? { coach, herstel } : {}),
     } as Workout);
     for (const [i, o] of dag.oefeningen.entries()) {
-      await addPlannedSets(
-        workoutId,
-        exercises[i].id,
-        o.sets,
-        o.reps[0],
-        plan.schema.coach
-          ? // Coach schema: double progression per exercise, start weight when there's no history yet.
-            {
-              repRange: o.reps,
-              progression: o.zonderGewicht ? undefined : { range: o.reps, increment: o.stap ?? 2.5 },
-              startWeight: o.startgewicht,
-            }
-          : { repRange: o.reps, weightDelta: weightDelta(o, plan.week, plan.blok) },
-      );
+      if (plan.schema.coach) {
+        const a = adviezen[i];
+        await addTargetSets(
+          workoutId,
+          exercises[i].id,
+          a.reps.map((reps) => ({ weight: a.gewicht, reps })),
+        );
+      } else {
+        await addPlannedSets(workoutId, exercises[i].id, o.sets, o.reps[0], {
+          repRange: o.reps,
+          weightDelta: weightDelta(o, plan.week, plan.blok),
+        });
+      }
     }
     return workoutId;
   });

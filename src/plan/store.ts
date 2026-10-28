@@ -22,6 +22,7 @@ export interface PlanState {
   gestart: string;
   wissels?: Wissel[]; // exercises you swapped for another variant, applied on top of the generated schema
   profiel?: Profiel; // coach schemas: the questionnaire answers the schema was made from
+  herstelWeken?: number[]; // coach schemas: Mondays (timestamps) of recovery weeks
 }
 
 // Same key as the former standalone schema app on the same site, so an existing schema carries over.
@@ -124,6 +125,12 @@ export function swapExercise(w: Wissel) {
     ? wisselCoachOefening(current.schema, current.profiel, w.dag, w.index, w.id)
     : pasWisselsToe(current.schema, [w]);
   save({ ...current, schema, wissels });
+}
+
+/** Marks a week (its Monday timestamp) as a recovery week for the whole schema. */
+export function markeerHerstel(maandag: number) {
+  if (!current || current.herstelWeken?.includes(maandag)) return;
+  save({ ...current, herstelWeken: [...(current.herstelWeken ?? []), maandag] });
 }
 
 export function setWeek(week: number) {

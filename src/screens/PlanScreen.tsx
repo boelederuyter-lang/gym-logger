@@ -25,6 +25,7 @@ import {
 } from '../plan/generator';
 import { currentWeek, loggedDays, startPlanDay } from '../plan/start';
 import { coachVarianten } from '../coach/generator';
+import { maandagVan } from '../coach/progression';
 import { LIBRARY_BY_SLUG } from '../library/exercises';
 import {
   createCoachPlan,
@@ -211,10 +212,16 @@ function PlanView({
             <div className="progress plan-progress">
               <div className="progress-fill" style={{ width: `${(doneCount / schema.dagen.length) * 100}%` }} />
             </div>
-            <p className="small muted">
-              Haal je bij een oefening alle sets bovenin het repbereik? Dan staat er de volgende keer meer gewicht
-              klaar.
-            </p>
+            {plan.herstelWeken?.includes(maandagVan(Date.now())) ? (
+              <p className="small">
+                🌙 <strong>Herstelweek:</strong> minder sets met hetzelfde gewicht. Volgende week bouw je weer verder.
+              </p>
+            ) : (
+              <p className="small muted">
+                Bij elke training staat klaar wat je doet, met de reden erbij: zwaarder als je alle sets bovenin het
+                repbereik haalt, anders eerst meer reps.
+              </p>
+            )}
             {profiel && profiel.blessures.length > 0 && (
               <p className="small muted">
                 Oefeningen die je {profiel.blessures.join(' of ')} belasten heb ik weggelaten.

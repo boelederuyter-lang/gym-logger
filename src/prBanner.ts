@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { playTones, vibrate } from './audio';
+import { playTones } from './audio';
+import { hapticRecord } from './haptics';
 
 export interface PrBannerMsg {
   id: number;
@@ -17,7 +18,7 @@ const emit = () => listeners.forEach((l) => l(current));
 
 export function showPrBanner(msg: Omit<PrBannerMsg, 'id'>) {
   current = { ...msg, id: nextId++ };
-  vibrate([40, 60, 40]);
+  hapticRecord();
   playTones([784, 988, 1319], 0, 0.12, 0.1, 0.25);
   clearTimeout(timer);
   timer = setTimeout(hidePrBanner, 4000);
