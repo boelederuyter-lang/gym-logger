@@ -1,4 +1,5 @@
 import { e1rm, fmtWeight } from './format';
+import { locale, tr } from './i18n';
 
 export interface SessionSet {
   weight: number | null;
@@ -17,14 +18,18 @@ export type Metric = 'e1rm' | 'weight' | 'volume' | 'reps' | 'totalReps';
 export type Period = '3m' | '1y' | 'all';
 
 export const METRIC_LABELS: Record<Metric, string> = {
-  e1rm: 'Geschatte 1RM',
-  weight: 'Zwaarste gewicht',
+  e1rm: tr('Geschatte 1RM', 'Estimated 1RM'),
+  weight: tr('Zwaarste gewicht', 'Heaviest weight'),
   volume: 'Volume',
-  reps: 'Meeste reps',
-  totalReps: 'Totaal reps',
+  reps: tr('Meeste reps', 'Most reps'),
+  totalReps: tr('Totaal reps', 'Total reps'),
 };
 
-export const PERIOD_LABELS: Record<Period, string> = { '3m': '3 mnd', '1y': '1 jaar', all: 'Alles' };
+export const PERIOD_LABELS: Record<Period, string> = {
+  '3m': tr('3 mnd', '3 mo'),
+  '1y': tr('1 jaar', '1 yr'),
+  all: tr('Alles', 'All'),
+};
 
 /** Exercises without any weight are charted by reps. */
 export function isWeighted(sessions: Session[]): boolean {
@@ -53,7 +58,7 @@ export function metricValue(session: Session, metric: Metric): number {
 
 export function fmtMetric(value: number, metric: Metric): string {
   if (metric === 'reps' || metric === 'totalReps') return `${value} reps`;
-  if (metric === 'volume') return `${Math.round(value).toLocaleString('nl-NL')} kg`;
+  if (metric === 'volume') return `${Math.round(value).toLocaleString(locale())} kg`;
   return `${fmtWeight(round1(value))} kg`;
 }
 

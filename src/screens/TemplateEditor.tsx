@@ -8,6 +8,7 @@ import { REST_OPTIONS } from '../components/RestSheet';
 import { Thumb } from '../components/Thumb';
 import { fmtRest } from '../format';
 import { defaultsFor } from '../library/defaults';
+import { tr } from '../i18n';
 
 interface Props {
   templateId?: number;
@@ -47,14 +48,22 @@ export function TemplateEditor({ templateId, onClose }: Props) {
   }
 
   async function save() {
-    const data = { name: name.trim() || 'Naamloos programma', items };
+    const data = { name: name.trim() || tr('Naamloos programma', 'Untitled program'), items };
     if (templateId == null) await db.templates.add({ ...data, createdAt: Date.now() } as Template);
     else await db.templates.update(templateId, data);
     onClose();
   }
 
   async function remove() {
-    if (templateId != null && confirm('Programma verwijderen? Je workout-historie blijft bewaard.')) {
+    if (
+      templateId != null &&
+      confirm(
+        tr(
+          'Programma verwijderen? Je workout-historie blijft bewaard.',
+          'Delete program? Your workout history is kept.',
+        ),
+      )
+    ) {
       await db.templates.delete(templateId);
       onClose();
     }
@@ -66,19 +75,25 @@ export function TemplateEditor({ templateId, onClose }: Props) {
     <div className="screen">
       <header className="topbar">
         <button className="link" onClick={onClose}>
-          Annuleer
+          {tr('Annuleer', 'Cancel')}
         </button>
         <div className="topbar-title">
-          <strong>{templateId == null ? 'Nieuw programma' : 'Programma bewerken'}</strong>
+          <strong>
+            {templateId == null ? tr('Nieuw programma', 'New program') : tr('Programma bewerken', 'Edit program')}
+          </strong>
         </div>
         <button className="link strong" onClick={save}>
-          Bewaar
+          {tr('Bewaar', 'Save')}
         </button>
       </header>
       <main className="content">
         <label className="field">
-          <span>Naam</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Bijv. Push, Pull, Legs" />
+          <span>{tr('Naam', 'Name')}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={tr('Bijv. Push, Pull, Legs', 'E.g. Push, Pull, Legs')}
+          />
         </label>
 
         {items.map((it, i) => {
@@ -91,21 +106,26 @@ export function TemplateEditor({ templateId, onClose }: Props) {
                   <Thumb exercise={ex} onClick={() => setInfo(it.exerciseId)} />
                   <h3 className="grow">{ex?.name ?? '…'}</h3>
                   <div className="inline">
-                    <button className="icon-btn" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Omhoog">
+                    <button
+                      className="icon-btn"
+                      onClick={() => move(i, -1)}
+                      disabled={i === 0}
+                      aria-label={tr('Omhoog', 'Move up')}
+                    >
                       ↑
                     </button>
                     <button
                       className="icon-btn"
                       onClick={() => move(i, 1)}
                       disabled={i === items.length - 1}
-                      aria-label="Omlaag"
+                      aria-label={tr('Omlaag', 'Move down')}
                     >
                       ↓
                     </button>
                     <button
                       className="icon-btn"
                       onClick={() => setItems(items.filter((_, j) => j !== i))}
-                      aria-label="Verwijderen"
+                      aria-label={tr('Verwijderen', 'Remove')}
                     >
                       ✕
                     </button>
@@ -124,7 +144,7 @@ export function TemplateEditor({ templateId, onClose }: Props) {
                     <input value={it.reps} onChange={(e) => update(i, { reps: e.target.value })} placeholder="8-12" />
                   </label>
                   <label className="reps-field">
-                    <span className="small muted">Rust</span>
+                    <span className="small muted">{tr('Rust', 'Rest')}</span>
                     <select value={rest} onChange={(e) => update(i, { restSeconds: Number(e.target.value) })}>
                       {[...new Set([...REST_OPTIONS, rest])]
                         .sort((a, b) => a - b)
@@ -142,7 +162,9 @@ export function TemplateEditor({ templateId, onClose }: Props) {
                   className={`link-btn ${it.supersetNext ? 'on' : ''}`}
                   onClick={() => update(i, { supersetNext: !it.supersetNext })}
                 >
-                  {it.supersetNext ? '🔗 Superset met volgende' : '+ Superset met volgende'}
+                  {it.supersetNext
+                    ? tr('🔗 Superset met volgende', '🔗 Superset with next')
+                    : tr('+ Superset met volgende', '+ Superset with next')}
                 </button>
               )}
             </Fragment>
@@ -150,11 +172,11 @@ export function TemplateEditor({ templateId, onClose }: Props) {
         })}
 
         <button className="btn secondary block" onClick={() => setPicking(true)}>
-          + Oefening toevoegen
+          + {tr('Oefening toevoegen', 'Add exercise')}
         </button>
         {templateId != null && (
           <button className="btn danger-text block" onClick={remove}>
-            Programma verwijderen
+            {tr('Programma verwijderen', 'Delete program')}
           </button>
         )}
       </main>
@@ -179,7 +201,7 @@ export function TemplateEditor({ templateId, onClose }: Props) {
         <ExerciseInfo
           exerciseId={info}
           onClose={() => setInfo(null)}
-          primary={{ label: 'Sluiten', onClick: () => setInfo(null) }}
+          primary={{ label: tr('Sluiten', 'Close'), onClick: () => setInfo(null) }}
         />
       )}
     </div>

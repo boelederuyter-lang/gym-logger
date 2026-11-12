@@ -6,6 +6,7 @@ import { showToast } from '../toast';
 import { Sheet } from '../components/Sheet';
 import { fmtWeight } from '../format';
 import { setSettings, useSettings } from '../settings';
+import { getLangChoice, setLangChoice, tr, type LangChoice } from '../i18n';
 
 const BAR_OPTIONS = [20, 15, 10];
 const STEP_OPTIONS = [1, 1.25, 2, 2.5, 5];
@@ -15,23 +16,49 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function doExport() {
-    if (await shareBackup()) showToast('Backup gemaakt');
+    if (await shareBackup()) showToast(tr('Backup gemaakt', 'Backup created'));
   }
 
   async function doImport(file: File) {
-    if (!confirm('Importeren vervangt al je huidige data. Doorgaan?')) return;
+    if (
+      !confirm(
+        tr('Importeren vervangt al je huidige data. Doorgaan?', 'Importing replaces all your current data. Continue?'),
+      )
+    )
+      return;
     try {
       await importData(await file.text());
-      alert('Import gelukt.');
+      alert(tr('Import gelukt.', 'Import successful.'));
     } catch (e) {
-      alert(`Import mislukt: ${(e as Error).message}`);
+      alert(`${tr('Import mislukt', 'Import failed')}: ${(e as Error).message}`);
     }
   }
 
   return (
-    <Sheet title="Instellingen" onClose={onClose}>
+    <Sheet title={tr('Instellingen', 'Settings')} onClose={onClose}>
       <div className="field">
-        <span>Gewicht van de stang</span>
+        <span>{tr('Taal', 'Language')}</span>
+        <div className="chips wrap">
+          {(
+            [
+              ['auto', tr('Automatisch', 'Automatic')],
+              ['nl', 'Nederlands'],
+              ['en', 'English'],
+            ] as [LangChoice, string][]
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              className={`chip ${getLangChoice() === v ? 'active' : ''}`}
+              onClick={() => setLangChoice(v)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="field">
+        <span>{tr('Gewicht van de stang', 'Barbell weight')}</span>
         <div className="chips wrap">
           {BAR_OPTIONS.map((w) => (
             <button
@@ -46,8 +73,10 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="field">
-        <span>Kleinste gewichtstap</span>
-        <p className="small muted">Warming-up sets worden hierop afgerond.</p>
+        <span>{tr('Kleinste gewichtstap', 'Smallest weight step')}</span>
+        <p className="small muted">
+          {tr('Warming-up sets worden hierop afgerond.', 'Warm-up sets are rounded to this.')}
+        </p>
         <div className="chips wrap">
           {STEP_OPTIONS.map((w) => (
             <button
@@ -62,7 +91,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       <label className="switch-row">
-        <span>Piepje aan het einde van de rust</span>
+        <span>{tr('Piepje aan het einde van de rust', 'Beep when rest is over')}</span>
         <input
           type="checkbox"
           className="switch"
@@ -74,16 +103,18 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
       <div className="field">
         <span>Backup</span>
         <p className="small muted">
-          Je data staat alleen op deze telefoon. Bewaar de backup in iCloud Drive (Delen → Bewaar in Bestanden), dan
-          raak je niets kwijt als je de app verwijdert of een nieuwe telefoon krijgt. Laatste backup:{' '}
+          {tr(
+            'Je data staat alleen op deze telefoon. Bewaar de backup in iCloud Drive (Delen → Bewaar in Bestanden), dan raak je niets kwijt als je de app verwijdert of een nieuwe telefoon krijgt. Laatste backup:',
+            'Your data lives only on this phone. Save the backup to iCloud Drive (Share → Save to Files) so you lose nothing if you delete the app or get a new phone. Last backup:',
+          )}{' '}
           {relativeDay(settings.lastBackupAt, Date.now())}.
         </p>
         <div className="row-buttons">
           <button className="btn secondary" onClick={doExport}>
-            Exporteren
+            {tr('Exporteren', 'Export')}
           </button>
           <button className="btn secondary" onClick={() => fileRef.current?.click()}>
-            Importeren
+            {tr('Importeren', 'Import')}
           </button>
         </div>
         <input

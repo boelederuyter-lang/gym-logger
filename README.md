@@ -27,6 +27,10 @@ Een snelle, overzichtelijke workout-logger voor de iPhone. Het is een PWA: je op
 
 Elke telefoon heeft zijn eigen data, dus een vriend kan dezelfde link gebruiken.
 
+## Talen
+
+De app is in het Nederlands en het Engels. Hij volgt de taal van je telefoon (Nederlands als die op Nederlands staat, anders Engels); in **Instellingen → Taal** kies je zelf. Alle teksten staan in de code als `tr('Nederlands', 'English')` (zie `src/i18n.ts`); Engelse oefeningnamen en tips staan in `src/library/english.ts`.
+
 ## Coach en trainingsschema
 
 Tabblad **Trainen → Schema**: een korte vragenlijst (doel, ervaring, dagen, tijd, materiaal, prioriteit, blessures, kracht) en de coach maakt je schema. Alles draait op je telefoon met vaste regels: geen AI, geen internet.

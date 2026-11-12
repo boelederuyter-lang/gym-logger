@@ -1,5 +1,6 @@
 import { e1rm, fmtWeight } from './format';
 import type { PrInfo, PrType } from './db';
+import { tr } from './i18n';
 
 export interface SetLike {
   weight: number | null;
@@ -52,9 +53,9 @@ export function computePrs<T extends SetLike & { done: boolean }>(
 const round = (n: number) => Math.round(n * 10) / 10;
 
 export const PR_TITLES: Record<PrType, string> = {
-  weight: 'Zwaarste gewicht ooit',
-  e1rm: 'Beste geschatte 1RM',
-  reps: 'Meeste reps',
+  weight: tr('Zwaarste gewicht ooit', 'Heaviest weight ever'),
+  e1rm: tr('Beste geschatte 1RM', 'Best estimated 1RM'),
+  reps: tr('Meeste reps', 'Most reps'),
 };
 
 /** Two lines for the banner, e.g. "Zwaarste gewicht ooit: 65 kg × 5" and "Vorig record 62,5 kg". */
@@ -66,19 +67,22 @@ export function describePr(set: SetLike, pr: PrInfo): { title: string; detail: s
       return {
         title: PR_TITLES.weight,
         detail: `${PR_TITLES.weight}: ${lift}`,
-        previous: `Vorig record ${fmtWeight(pr.prev)} kg`,
+        previous: `${tr('Vorig record', 'Previous record')} ${fmtWeight(pr.prev)} kg`,
       };
     case 'e1rm':
       return {
         title: PR_TITLES.e1rm,
         detail: `${PR_TITLES.e1rm}: ${fmtWeight(round(e1rm(set)))} kg (${lift})`,
-        previous: `Vorig record ${fmtWeight(pr.prev)} kg`,
+        previous: `${tr('Vorig record', 'Previous record')} ${fmtWeight(pr.prev)} kg`,
       };
     case 'reps':
       return {
-        title: w > 0 ? `Meeste reps met ${fmtWeight(w)} kg` : PR_TITLES.reps,
-        detail: w > 0 ? `Meeste reps met ${fmtWeight(w)} kg: ${set.reps}` : `${PR_TITLES.reps}: ${set.reps}`,
-        previous: `Vorig record ${pr.prev} reps`,
+        title: w > 0 ? `${tr('Meeste reps met', 'Most reps with')} ${fmtWeight(w)} kg` : PR_TITLES.reps,
+        detail:
+          w > 0
+            ? `${tr('Meeste reps met', 'Most reps with')} ${fmtWeight(w)} kg: ${set.reps}`
+            : `${PR_TITLES.reps}: ${set.reps}`,
+        previous: `${tr('Vorig record', 'Previous record')} ${pr.prev} reps`,
       };
   }
 }

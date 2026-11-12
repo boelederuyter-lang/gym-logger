@@ -4,7 +4,10 @@
 // schemagenerator gebruiken deze functies.
 
 import {
+  GEWRICHT_LABEL,
   GEWRICHTEN,
+  GROEP_LABEL,
+  MATERIAAL_LABEL,
   MATERIAAL_PER_KEUZE,
   MATERIALEN,
   NIVEAUS,
@@ -15,6 +18,7 @@ import {
   type Niveau,
   type Spiergroep,
 } from './exercises';
+import { decimal, tr } from '../i18n';
 
 export type Doel = 'spiermassa' | 'sterker' | 'vet verliezen' | 'fitheid';
 export const DOELEN: Doel[] = ['spiermassa', 'sterker', 'vet verliezen', 'fitheid'];
@@ -51,8 +55,11 @@ export const MAX_PRIORITEIT = 2;
 export const MIN_DAGEN = 2;
 export const MAX_DAGEN = 6;
 
-export const DAG_NAMEN = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'];
-export const DAG_KORT = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+export const DAG_NAMEN = tr(
+  'Maandag Dinsdag Woensdag Donderdag Vrijdag Zaterdag Zondag',
+  'Monday Tuesday Wednesday Thursday Friday Saturday Sunday',
+).split(' ');
+export const DAG_KORT = tr('ma di wo do vr za zo', 'Mon Tue Wed Thu Fri Sat Sun').split(' ');
 
 /** Een logische spreiding over de week, met rustdagen ertussen waar dat kan. */
 export function standaardDagen(aantal: number): number[] {
@@ -124,10 +131,12 @@ export function wisselMateriaal(profiel: Profiel, m: Materiaal): Profiel {
 
 /** Is het profiel compleet genoeg om een schema te maken? Geeft de reden als het niet zo is. */
 export function controleer(p: Profiel): string | null {
-  if (p.dagen.length < MIN_DAGEN) return `Kies minstens ${MIN_DAGEN} dagen.`;
-  if (p.dagen.length > MAX_DAGEN) return `Kies hoogstens ${MAX_DAGEN} dagen.`;
-  if (!p.materiaal.includes('lichaamsgewicht')) return 'Lichaamsgewicht hoort er altijd bij.';
-  if (p.prioriteit.length > MAX_PRIORITEIT) return `Kies hoogstens ${MAX_PRIORITEIT} spiergroepen.`;
+  if (p.dagen.length < MIN_DAGEN) return tr(`Kies minstens ${MIN_DAGEN} dagen.`, `Pick at least ${MIN_DAGEN} days.`);
+  if (p.dagen.length > MAX_DAGEN) return tr(`Kies hoogstens ${MAX_DAGEN} dagen.`, `Pick at most ${MAX_DAGEN} days.`);
+  if (!p.materiaal.includes('lichaamsgewicht'))
+    return tr('Lichaamsgewicht hoort er altijd bij.', 'Bodyweight is always included.');
+  if (p.prioriteit.length > MAX_PRIORITEIT)
+    return tr(`Kies hoogstens ${MAX_PRIORITEIT} spiergroepen.`, `Pick at most ${MAX_PRIORITEIT} muscle groups.`);
   return null;
 }
 
@@ -224,71 +233,95 @@ export function vanOudeInvoer(oud: OudeInvoer): Profiel {
 // ---------- teksten ----------
 
 export const DOEL_TEKST: Record<Doel, [string, string]> = {
-  spiermassa: ['Spiermassa', 'Groter en voller worden'],
-  sterker: ['Sterker worden', 'Zwaarder tillen op de basisoefeningen'],
-  'vet verliezen': ['Vet verliezen', 'Strakker worden en spieren behouden'],
-  fitheid: ['Fitheid', 'Je fit en energiek voelen'],
+  spiermassa: [tr('Spiermassa', 'Build muscle'), tr('Groter en voller worden', 'Get bigger and fuller')],
+  sterker: [
+    tr('Sterker worden', 'Get stronger'),
+    tr('Zwaarder tillen op de basisoefeningen', 'Lift heavier on the big lifts'),
+  ],
+  'vet verliezen': [
+    tr('Vet verliezen', 'Lose fat'),
+    tr('Strakker worden en spieren behouden', 'Get leaner and keep your muscle'),
+  ],
+  fitheid: [tr('Fitheid', 'Fitness'), tr('Je fit en energiek voelen', 'Feel fit and energetic')],
 };
 
 export const NIVEAU_TEKST: Record<Niveau, [string, string]> = {
-  beginner: ['Beginner', 'Minder dan 1 jaar'],
-  gevorderd: ['Gevorderd', '1 tot 3 jaar'],
-  ervaren: ['Ervaren', 'Meer dan 3 jaar'],
+  beginner: ['Beginner', tr('Minder dan 1 jaar', 'Less than 1 year')],
+  gevorderd: [tr('Gevorderd', 'Intermediate'), tr('1 tot 3 jaar', '1 to 3 years')],
+  ervaren: [tr('Ervaren', 'Experienced'), tr('Meer dan 3 jaar', 'More than 3 years')],
 };
 
 export const MATERIAAL_TEKST: Record<MateriaalKeuze, [string, string]> = {
-  'volledige gym': ['Volledige gym', 'Stangen, machines, kabels'],
-  'kleine gym': ['Kleine gym', 'Stang en dumbbells, weinig machines'],
-  'thuis met dumbbells': ['Thuis met dumbbells', 'Dumbbells en een bankje'],
-  'alleen lichaamsgewicht': ['Alleen lichaamsgewicht', 'Geen spullen nodig'],
+  'volledige gym': [tr('Volledige gym', 'Full gym'), tr('Stangen, machines, kabels', 'Barbells, machines, cables')],
+  'kleine gym': [
+    tr('Kleine gym', 'Small gym'),
+    tr('Stang en dumbbells, weinig machines', 'Barbell and dumbbells, few machines'),
+  ],
+  'thuis met dumbbells': [
+    tr('Thuis met dumbbells', 'Home with dumbbells'),
+    tr('Dumbbells en een bankje', 'Dumbbells and a bench'),
+  ],
+  'alleen lichaamsgewicht': [
+    tr('Alleen lichaamsgewicht', 'Bodyweight only'),
+    tr('Geen spullen nodig', 'No equipment needed'),
+  ],
 };
 
 export const LIFT_NAAM: Record<Basislift, string> = {
   squat: 'Squat',
-  bankdrukken: 'Bankdrukken',
+  bankdrukken: tr('Bankdrukken', 'Bench press'),
   deadlift: 'Deadlift',
 };
 
 const hoofdletter = (s: string) => s[0].toUpperCase() + s.slice(1);
-const lijst = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} en ${xs.at(-1)}`);
-const kg = (n: number) => String(n).replace('.', ',');
+const lijst = (xs: string[]) =>
+  xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} ${tr('en', 'and')} ${xs.at(-1)}`;
+const kg = (n: number) => decimal(n);
 
 /** De regels van de samenvatting, in volgorde van de vragen. `stap` is de vraag die je aanpast. */
 export function samenvatting(p: Profiel): { label: string; waarde: string; stap: Stap }[] {
   const materiaal =
-    p.materiaalKeuze === 'zelf' ? lijst(p.materiaal.map((m) => m)) : MATERIAAL_TEKST[p.materiaalKeuze][0];
+    p.materiaalKeuze === 'zelf'
+      ? lijst(p.materiaal.map((m) => MATERIAAL_LABEL[m]))
+      : MATERIAAL_TEKST[p.materiaalKeuze][0];
   const kracht = BASISLIFTS.filter((l) => p.kracht[l]).map(
     (l) => `${LIFT_NAAM[l]} ${kg(p.kracht[l]!.kg)} kg × ${p.kracht[l]!.reps}`,
   );
   return [
-    { label: 'Doel', waarde: DOEL_TEKST[p.doel][0], stap: 'doel' },
+    { label: tr('Doel', 'Goal'), waarde: DOEL_TEKST[p.doel][0], stap: 'doel' },
     {
-      label: 'Ervaring',
+      label: tr('Ervaring', 'Experience'),
       waarde: `${NIVEAU_TEKST[p.niveau][0]} (${NIVEAU_TEKST[p.niveau][1].toLowerCase()})`,
       stap: 'niveau',
     },
     {
-      label: 'Dagen',
-      waarde: `${p.dagen.length}× per week: ${lijst(p.dagen.map((d) => DAG_KORT[d]))}`,
+      label: tr('Dagen', 'Days'),
+      waarde: `${p.dagen.length}× ${tr('per week', 'a week')}: ${lijst(p.dagen.map((d) => DAG_KORT[d]))}`,
       stap: 'dagen',
     },
-    { label: 'Tijd', waarde: `${p.tijd} minuten per training`, stap: 'tijd' },
-    { label: 'Materiaal', waarde: hoofdletter(materiaal), stap: 'materiaal' },
     {
-      label: 'Prioriteit',
-      waarde: p.prioriteit.length ? hoofdletter(lijst(p.prioriteit)) : 'Geen, alles gelijk',
+      label: tr('Tijd', 'Time'),
+      waarde: tr(`${p.tijd} minuten per training`, `${p.tijd} minutes per session`),
+      stap: 'tijd',
+    },
+    { label: tr('Materiaal', 'Equipment'), waarde: hoofdletter(materiaal), stap: 'materiaal' },
+    {
+      label: tr('Prioriteit', 'Priority'),
+      waarde: p.prioriteit.length
+        ? hoofdletter(lijst(p.prioriteit.map((g) => GROEP_LABEL[g])))
+        : tr('Geen, alles gelijk', 'None, all equal'),
       stap: 'prioriteit',
     },
     {
-      label: 'Blessures',
-      waarde: p.blessures.length ? hoofdletter(lijst(p.blessures)) : 'Geen',
+      label: tr('Blessures', 'Injuries'),
+      waarde: p.blessures.length ? hoofdletter(lijst(p.blessures.map((g) => GEWRICHT_LABEL[g]))) : tr('Geen', 'None'),
       stap: 'blessures',
     },
     {
-      label: 'Kracht',
+      label: tr('Kracht', 'Strength'),
       waarde:
-        (kracht.length ? kracht.join(', ') : 'Niet ingevuld') +
-        (p.lichaamsgewicht ? ` · ${kg(p.lichaamsgewicht)} kg lichaamsgewicht` : ''),
+        (kracht.length ? kracht.join(', ') : tr('Niet ingevuld', 'Not filled in')) +
+        (p.lichaamsgewicht ? ` · ${kg(p.lichaamsgewicht)} kg ${tr('lichaamsgewicht', 'bodyweight')}` : ''),
       stap: 'kracht',
     },
   ];

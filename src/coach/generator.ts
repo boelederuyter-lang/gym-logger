@@ -22,10 +22,12 @@ import {
   geschiktVoor,
   hoofdMateriaal,
   kanMet,
+  SPIER_LABEL,
   type CoachOefening,
   type Patroon,
   type Spier,
 } from './exercises';
+import { tr } from '../i18n';
 import { naarOudeInvoer, type Basislift, type Doel, type Profiel } from './profile';
 
 // ---------- dagtypes ----------
@@ -53,7 +55,7 @@ const iso = (...spier: Spier[]): Slot => ({ p: 'isolatie', spier });
 export const DAGTYPES: Record<string, DagType> = {
   fbA: {
     naam: 'Full body A',
-    focus: 'Hele lichaam',
+    focus: tr('Hele lichaam', 'Full body'),
     slots: [
       { p: 'squat', anders: 'lunge' },
       { p: 'horizontaal duwen' },
@@ -65,11 +67,14 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Je traint je hele lichaam, met ${h} als hoofdoefening. Daarna duw en trek je evenveel, zodat je lichaam in balans blijft.`,
+      tr(
+        `Je traint je hele lichaam, met ${h} als hoofdoefening. Daarna duw en trek je evenveel, zodat je lichaam in balans blijft.`,
+        `You train your whole body, with ${h} as the main lift. Then you push and pull equally, so your body stays balanced.`,
+      ),
   },
   fbB: {
     naam: 'Full body B',
-    focus: 'Hele lichaam',
+    focus: tr('Hele lichaam', 'Full body'),
     slots: [
       { p: 'hinge' },
       { p: 'verticaal duwen', anders: 'horizontaal duwen' },
@@ -81,11 +86,14 @@ export const DAGTYPES: Record<string, DagType> = {
       iso('kuiten'),
     ],
     uitleg: (h) =>
-      `Vandaag begin je met ${h} voor je achterkant: billen, hamstrings en rug. Boven train je nu verticaal, zodat je schouders en lats ook aan bod komen.`,
+      tr(
+        `Vandaag begin je met ${h} voor je achterkant: billen, hamstrings en rug. Boven train je nu verticaal, zodat je schouders en lats ook aan bod komen.`,
+        `Today you start with ${h} for your posterior chain: glutes, hamstrings and back. Up top you train vertically, so your shoulders and lats get their turn too.`,
+      ),
   },
   fbC: {
     naam: 'Full body C',
-    focus: 'Hele lichaam',
+    focus: tr('Hele lichaam', 'Full body'),
     slots: [
       { p: 'squat', anders: 'lunge' },
       { p: 'horizontaal duwen' },
@@ -97,11 +105,14 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Nog een keer het hele lichaam, met ${h} voorop maar andere varianten dan op A. Zo train je elke spier drie keer per week zonder dat het saai wordt.`,
+      tr(
+        `Nog een keer het hele lichaam, met ${h} voorop maar andere varianten dan op A. Zo train je elke spier drie keer per week zonder dat het saai wordt.`,
+        `Full body once more, with ${h} first but different variations than on A. That way you train every muscle three times a week without it getting boring.`,
+      ),
   },
   upperA: {
     naam: 'Upper A',
-    focus: 'Bovenlichaam',
+    focus: tr('Bovenlichaam', 'Upper body'),
     slots: [
       { p: 'horizontaal duwen' },
       { p: 'horizontaal trekken' },
@@ -113,11 +124,14 @@ export const DAGTYPES: Record<string, DagType> = {
       iso('borst'),
     ],
     uitleg: (h) =>
-      `Een dag voor je bovenlichaam, met ${h} als zwaarste oefening. Elke duwoefening heeft een trekoefening als tegenhanger, goed voor je schouders.`,
+      tr(
+        `Een dag voor je bovenlichaam, met ${h} als zwaarste oefening. Elke duwoefening heeft een trekoefening als tegenhanger, goed voor je schouders.`,
+        `An upper body day, with ${h} as the heaviest lift. Every push has a pull to match it, which keeps your shoulders healthy.`,
+      ),
   },
   lowerA: {
     naam: 'Lower A',
-    focus: 'Onderlichaam',
+    focus: tr('Onderlichaam', 'Lower body'),
     slots: [
       { p: 'squat', anders: 'lunge' },
       { p: 'hinge' },
@@ -127,11 +141,15 @@ export const DAGTYPES: Record<string, DagType> = {
       iso('kuiten'),
       { p: 'core' },
     ],
-    uitleg: (h) => `Benendag met ${h} voorop, als je nog fris bent. Daarna werk je je hamstrings, billen en kuiten af.`,
+    uitleg: (h) =>
+      tr(
+        `Benendag met ${h} voorop, als je nog fris bent. Daarna werk je je hamstrings, billen en kuiten af.`,
+        `Leg day with ${h} first, while you are still fresh. Then you finish off your hamstrings, glutes and calves.`,
+      ),
   },
   upperB: {
     naam: 'Upper B',
-    focus: 'Bovenlichaam',
+    focus: tr('Bovenlichaam', 'Upper body'),
     slots: [
       { p: 'verticaal trekken', anders: 'horizontaal trekken' },
       { p: 'horizontaal duwen' },
@@ -143,11 +161,14 @@ export const DAGTYPES: Record<string, DagType> = {
       iso('biceps'),
     ],
     uitleg: (h) =>
-      `Weer bovenlichaam, maar nu begin je met ${h}. Andere varianten dan op A geven je spieren een nieuwe prikkel.`,
+      tr(
+        `Weer bovenlichaam, maar nu begin je met ${h}. Andere varianten dan op A geven je spieren een nieuwe prikkel.`,
+        `Upper body again, but now you start with ${h}. Different variations than on A give your muscles a new stimulus.`,
+      ),
   },
   lowerB: {
     naam: 'Lower B',
-    focus: 'Onderlichaam',
+    focus: tr('Onderlichaam', 'Lower body'),
     slots: [
       { p: 'hinge' },
       { p: 'squat', anders: 'lunge' },
@@ -158,11 +179,14 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Benendag met de nadruk op je achterkant: ${h} gaat voor. Zo train je je benen van alle kanten in één week.`,
+      tr(
+        `Benendag met de nadruk op je achterkant: ${h} gaat voor. Zo train je je benen van alle kanten in één week.`,
+        `Leg day with the focus on your posterior chain: ${h} comes first. That way you train your legs from every angle in one week.`,
+      ),
   },
   push: {
     naam: 'Push',
-    focus: 'Borst, schouders en triceps',
+    focus: tr('Borst, schouders en triceps', 'Chest, shoulders and triceps'),
     slots: [
       { p: 'horizontaal duwen' },
       { p: 'verticaal duwen' },
@@ -174,11 +198,14 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Alles wat duwt: borst, schouders en triceps, met ${h} als basis. Door ze op één dag te trainen hebben ze daarna een paar dagen rust.`,
+      tr(
+        `Alles wat duwt: borst, schouders en triceps, met ${h} als basis. Door ze op één dag te trainen hebben ze daarna een paar dagen rust.`,
+        `Everything that pushes: chest, shoulders and triceps, built around ${h}. Training them on one day gives them a few days of rest afterwards.`,
+      ),
   },
   pull: {
     naam: 'Pull',
-    focus: 'Rug en biceps',
+    focus: tr('Rug en biceps', 'Back and biceps'),
     slots: [
       { p: 'verticaal trekken', anders: 'horizontaal trekken' },
       { p: 'horizontaal trekken' },
@@ -190,11 +217,14 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Alles wat trekt: rug, achterkant schouders en biceps, te beginnen met ${h}. Een sterke rug houdt je houding recht en je schouders gezond.`,
+      tr(
+        `Alles wat trekt: rug, achterkant schouders en biceps, te beginnen met ${h}. Een sterke rug houdt je houding recht en je schouders gezond.`,
+        `Everything that pulls: back, rear delts and biceps, starting with ${h}. A strong back keeps your posture upright and your shoulders healthy.`,
+      ),
   },
   legs: {
     naam: 'Legs',
-    focus: 'Benen en billen',
+    focus: tr('Benen en billen', 'Legs and glutes'),
     slots: [
       { p: 'squat', anders: 'lunge' },
       { p: 'hinge' },
@@ -205,7 +235,10 @@ export const DAGTYPES: Record<string, DagType> = {
       { p: 'core' },
     ],
     uitleg: (h) =>
-      `Je benen en billen krijgen vandaag alle aandacht, met ${h} als hoofdoefening. De grootste spieren van je lichaam, dus hier win je de meeste kracht.`,
+      tr(
+        `Je benen en billen krijgen vandaag alle aandacht, met ${h} als hoofdoefening. De grootste spieren van je lichaam, dus hier win je de meeste kracht.`,
+        `Your legs and glutes get all the attention today, with ${h} as the main lift. These are the biggest muscles in your body, so this is where you gain the most strength.`,
+      ),
   },
 };
 
@@ -371,9 +404,17 @@ export function startgewicht(
 
 /** Uitleg als we geen startgewicht weten. */
 export function startHint(oef: CoachOefening, reps: [number, number]): string | undefined {
-  if (oef.eenheid === 'sec') return `Houd ${reps[0]} sec vol; lukt ${reps[1]} sec, maak het zwaarder.`;
-  if (oef.progressie === 'reps') return `Doe ${reps[0]} tot ${reps[1]} nette reps per set.`;
-  return `Kies een gewicht waarmee je ${reps[1]} reps net haalt.`;
+  if (oef.eenheid === 'sec')
+    return tr(
+      `Houd ${reps[0]} sec vol; lukt ${reps[1]} sec, maak het zwaarder.`,
+      `Hold for ${reps[0]} sec; once you can do ${reps[1]} sec, make it harder.`,
+    );
+  if (oef.progressie === 'reps')
+    return tr(`Doe ${reps[0]} tot ${reps[1]} nette reps per set.`, `Do ${reps[0]} to ${reps[1]} clean reps per set.`);
+  return tr(
+    `Kies een gewicht waarmee je ${reps[1]} reps net haalt.`,
+    `Pick a weight you can just manage for ${reps[1]} reps.`,
+  );
 }
 
 // ---------- kiezen ----------
@@ -453,7 +494,7 @@ export function maakOefening(c: CoachOefening, p: Profiel, rol: Rol, sets: numbe
     id: c.id,
     slug: c.id,
     naam: c.naam,
-    spiergroep: c.primair.map((s) => s[0].toUpperCase() + s.slice(1)).join(', '),
+    spiergroep: c.primair.map((s) => SPIER_LABEL[s][0].toUpperCase() + SPIER_LABEL[s].slice(1)).join(', '),
     patroon: c.patroon,
     apparatuur: hoofdMateriaal(c.materiaal),
     zonderGewicht: c.progressie === 'reps',
@@ -636,7 +677,7 @@ export function genereerCoachSchema(p: Profiel, seed: number): Schema {
       type,
       naam,
       focus: t.focus,
-      uitleg: t.uitleg(oefeningen[0]?.naam.toLowerCase() ?? 'de eerste oefening'),
+      uitleg: t.uitleg(oefeningen[0]?.naam.toLowerCase() ?? tr('de eerste oefening', 'the first exercise')),
       weekdag: p.dagen[i],
       oefeningen,
       cardio: null,

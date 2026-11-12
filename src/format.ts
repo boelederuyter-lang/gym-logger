@@ -1,8 +1,9 @@
 import type { WorkoutSet } from './db';
+import { decimal, locale } from './i18n';
 
 export function fmtWeight(w: number | null | undefined): string {
   if (w == null) return '–';
-  return Number.isInteger(w) ? String(w) : w.toFixed(2).replace(/0+$/, '').replace('.', ',');
+  return Number.isInteger(w) ? String(w) : decimal(w.toFixed(2).replace(/0+$/, ''));
 }
 
 /** Rest time as m:ss. */
@@ -30,7 +31,7 @@ export function fmtDuration(ms: number): string {
 }
 
 export function fmtDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(ts).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export function volume(sets: WorkoutSet[]): number {

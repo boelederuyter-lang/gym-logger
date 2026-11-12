@@ -25,6 +25,7 @@
 //   tip           één techniektip
 //   eenheid       'sec' voor oefeningen die je op tijd doet (plank e.d.)
 
+import { tr } from '../i18n';
 import { LIBRARY_BY_SLUG, type Equipment, type Muscle } from '../library/exercises';
 
 export type Patroon =
@@ -680,12 +681,63 @@ export function alternatievenVoor(
 
 export const PATROON_LABEL: Record<Patroon, string> = {
   squat: 'Squat',
-  hinge: 'Heupscharnier',
-  'horizontaal duwen': 'Horizontaal duwen',
-  'verticaal duwen': 'Verticaal duwen',
-  'horizontaal trekken': 'Horizontaal trekken',
-  'verticaal trekken': 'Verticaal trekken',
+  hinge: tr('Heupscharnier', 'Hip hinge'),
+  'horizontaal duwen': tr('Horizontaal duwen', 'Horizontal push'),
+  'verticaal duwen': tr('Verticaal duwen', 'Vertical push'),
+  'horizontaal trekken': tr('Horizontaal trekken', 'Horizontal pull'),
+  'verticaal trekken': tr('Verticaal trekken', 'Vertical pull'),
   lunge: 'Lunge',
-  isolatie: 'Isolatie',
+  isolatie: tr('Isolatie', 'Isolation'),
   core: 'Core',
+};
+
+// Labels for on screen; the stored values stay Dutch.
+export const SPIER_LABEL: Record<Spier, string> = {
+  borst: tr('borst', 'chest'),
+  lats: 'lats',
+  bovenrug: tr('bovenrug', 'upper back'),
+  onderrug: tr('onderrug', 'lower back'),
+  'voorkant schouder': tr('voorkant schouder', 'front delts'),
+  'zijkant schouder': tr('zijkant schouder', 'side delts'),
+  'achterkant schouder': tr('achterkant schouder', 'rear delts'),
+  biceps: 'biceps',
+  triceps: 'triceps',
+  onderarmen: tr('onderarmen', 'forearms'),
+  quadriceps: 'quadriceps',
+  hamstrings: 'hamstrings',
+  billen: tr('billen', 'glutes'),
+  adductoren: tr('adductoren', 'adductors'),
+  kuiten: tr('kuiten', 'calves'),
+  buik: tr('buik', 'abs'),
+  'schuine buikspieren': tr('schuine buikspieren', 'obliques'),
+};
+
+export const GROEP_LABEL: Record<Spiergroep, string> = {
+  borst: tr('borst', 'chest'),
+  rug: tr('rug', 'back'),
+  schouders: tr('schouders', 'shoulders'),
+  armen: tr('armen', 'arms'),
+  benen: tr('benen', 'legs'),
+  billen: tr('billen', 'glutes'),
+  buik: tr('buik', 'abs'),
+};
+
+export const GEWRICHT_LABEL: Record<Gewricht, string> = {
+  knie: tr('knie', 'knee'),
+  onderrug: tr('onderrug', 'lower back'),
+  schouder: tr('schouder', 'shoulder'),
+  elleboog: tr('elleboog', 'elbow'),
+  pols: tr('pols', 'wrist'),
+  heup: tr('heup', 'hip'),
+  nek: tr('nek', 'neck'),
+};
+
+export const MATERIAAL_LABEL: Record<Materiaal, string> = {
+  stang: tr('stang', 'barbell'),
+  dumbbells: 'dumbbells',
+  machine: tr('machines', 'machines'),
+  kabel: tr('kabels', 'cables'),
+  lichaamsgewicht: tr('lichaamsgewicht', 'bodyweight'),
+  bank: tr('bank', 'bench'),
+  rek: tr('rek of optrekstang', 'rack or pull-up bar'),
 };

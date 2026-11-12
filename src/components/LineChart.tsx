@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { niceTicks } from '../progress';
+import { locale, tr } from '../i18n';
 
 export interface ChartPoint {
   x: number; // timestamp
@@ -31,7 +32,10 @@ export function LineChart({ points, format, selected, onSelect, height = 220 }: 
     return () => ro.disconnect();
   }, []);
 
-  if (points.length === 0) return <div className="chart-empty muted">Nog geen gegevens in deze periode.</div>;
+  if (points.length === 0)
+    return (
+      <div className="chart-empty muted">{tr('Nog geen gegevens in deze periode.', 'No data in this period yet.')}</div>
+    );
 
   const ys = points.map((p) => p.y);
   const ticks = niceTicks(Math.min(...ys), Math.max(...ys));
@@ -58,7 +62,7 @@ export function LineChart({ points, format, selected, onSelect, height = 220 }: 
 
   const sel = selected != null ? points[selected] : null;
   const label = sel
-    ? `${format(sel.y)} · ${new Date(sel.x).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
+    ? `${format(sel.y)} · ${new Date(sel.x).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })}`
     : '';
   const labelW = label.length * 6.6 + 16;
   const labelX = sel ? Math.min(width - PAD.right - labelW, Math.max(PAD.left, sx(sel.x) - labelW / 2)) : 0;
@@ -72,7 +76,7 @@ export function LineChart({ points, format, selected, onSelect, height = 220 }: 
         onPointerMove={(e) => (e.buttons || e.pointerType === 'mouse') && pick(e.clientX)}
         onPointerLeave={(e) => e.pointerType === 'mouse' && onSelect(null)}
         role="img"
-        aria-label="Grafiek van je voortgang"
+        aria-label={tr('Grafiek van je voortgang', 'Chart of your progress')}
       >
         <defs>
           <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
@@ -84,14 +88,14 @@ export function LineChart({ points, format, selected, onSelect, height = 220 }: 
           <g key={t}>
             <line className="chart-grid" x1={PAD.left} x2={width - PAD.right} y1={sy(t)} y2={sy(t)} />
             <text className="chart-tick" x={PAD.left - 8} y={sy(t)} textAnchor="end" dominantBaseline="middle">
-              {t.toLocaleString('nl-NL')}
+              {t.toLocaleString(locale())}
             </text>
           </g>
         ))}
         {xTicks.map((t) => (
           <text key={t} className="chart-tick" x={sx(t)} y={height - 6} textAnchor="middle">
             {new Date(t).toLocaleDateString(
-              'nl-NL',
+              locale(),
               x1 - x0 > 300 * 864e5 ? { month: 'short', year: '2-digit' } : { day: 'numeric', month: 'short' },
             )}
           </text>

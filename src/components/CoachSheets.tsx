@@ -5,6 +5,7 @@ import { EQUIPMENT_LABELS } from '../library/exercises';
 import { showToast } from '../toast';
 import { Sheet } from './Sheet';
 import { Thumb } from './Thumb';
+import { tr } from '../i18n';
 
 /** "Bezet?" — pick an exercise that trains the same, for when the machine or bench is taken. */
 export function ReplaceSheet({
@@ -22,17 +23,20 @@ export function ReplaceSheet({
 
   async function pick(next: Exercise) {
     const undo = await replaceExerciseInWorkout(workout.id, exercise.id, next);
-    showToast(`${exercise.name} vervangen door ${next.name}`, undo);
+    showToast(tr(`${exercise.name} vervangen door ${next.name}`, `${exercise.name} replaced by ${next.name}`), undo);
     onClose();
   }
 
   return (
-    <Sheet title="Bezet? Kies een vervanger" onClose={onClose}>
+    <Sheet title={tr('Bezet? Kies een vervanger', 'Taken? Pick a replacement')} onClose={onClose}>
       <p className="small muted">
-        Deze oefeningen trainen hetzelfde als {exercise.name}. Je open sets gaan mee; wat je al deed blijft staan.
+        {tr(
+          `Deze oefeningen trainen hetzelfde als ${exercise.name}. Je open sets gaan mee; wat je al deed blijft staan.`,
+          `These exercises train the same as ${exercise.name}. Your open sets move over; what you already did stays.`,
+        )}
       </p>
       {options.length === 0 ? (
-        <p className="empty">Geen vervanger gevonden.</p>
+        <p className="empty">{tr('Geen vervanger gevonden.', 'No replacement found.')}</p>
       ) : (
         <ul className="list card">
           {options.map((o) => (
@@ -59,23 +63,32 @@ export function TimeSheet({ workout, left, onClose }: { workout: Workout; left: 
   async function pick(minutes: number) {
     const r = await fitWorkoutToTime(workout.id, minutes);
     const parts = [
-      r.dropped ? (r.dropped === 1 ? '1 oefening' : `${r.dropped} oefeningen`) : '',
+      r.dropped
+        ? r.dropped === 1
+          ? tr('1 oefening', '1 exercise')
+          : tr(`${r.dropped} oefeningen`, `${r.dropped} exercises`)
+        : '',
       r.setsRemoved ? (r.setsRemoved === 1 ? '1 set' : `${r.setsRemoved} sets`) : '',
     ].filter(Boolean);
     showToast(
       parts.length
-        ? `Ingekort tot ± ${r.minutes} min: ${parts.join(' en ')} minder`
-        : `Past al: rust ingekort, ± ${r.minutes} min`,
+        ? tr(
+            `Ingekort tot ± ${r.minutes} min: ${parts.join(' en ')} minder`,
+            `Shortened to ± ${r.minutes} min: ${parts.join(' and ')} fewer`,
+          )
+        : tr(`Past al: rust ingekort, ± ${r.minutes} min`, `Already fits: rest shortened, ± ${r.minutes} min`),
       r.undo,
     );
     onClose();
   }
 
   return (
-    <Sheet title="Weinig tijd?" onClose={onClose}>
+    <Sheet title={tr('Weinig tijd?', 'Short on time?')} onClose={onClose}>
       <p className="small muted">
-        Je hebt nog ± {left} min aan sets staan. Hoeveel tijd heb je nog? De eerste twee oefeningen houden het langst
-        hun sets; eerst wordt de rust korter, dan gaan er sets af en als laatste vallen de laatste oefeningen weg.
+        {tr(
+          `Je hebt nog ± ${left} min aan sets staan. Hoeveel tijd heb je nog? De eerste twee oefeningen houden het langst hun sets; eerst wordt de rust korter, dan gaan er sets af en als laatste vallen de laatste oefeningen weg.`,
+          `You have about ${left} min of sets left. How much time do you have? The first two exercises keep their sets longest; first rest gets shorter, then sets come off, and finally the last exercises are dropped.`,
+        )}
       </p>
       <div className="chips wrap">
         {MINUTES.map((m) => (

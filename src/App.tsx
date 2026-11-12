@@ -17,14 +17,15 @@ import { TemplateEditor } from './screens/TemplateEditor';
 import { initialTrainView, TrainScreen, type TrainView } from './screens/TrainScreen';
 import { WorkoutScreen } from './screens/WorkoutScreen';
 import { useWakeLock } from './wakeLock';
+import { tr } from './i18n';
 
 type Tab = 'home' | 'train' | 'history' | 'exercises';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'home', label: 'Start', icon: 'home' },
-  { id: 'train', label: 'Trainen', icon: 'schema' },
-  { id: 'history', label: 'Voortgang', icon: 'progress' },
-  { id: 'exercises', label: 'Oefeningen', icon: 'exercises' },
+  { id: 'home', label: tr('Start', 'Home'), icon: 'home' },
+  { id: 'train', label: tr('Trainen', 'Train'), icon: 'schema' },
+  { id: 'history', label: tr('Voortgang', 'Progress'), icon: 'progress' },
+  { id: 'exercises', label: tr('Oefeningen', 'Exercises'), icon: 'exercises' },
 ];
 
 export function App() {
@@ -61,7 +62,7 @@ export function App() {
     adoptShared(shared);
     setShared(null);
     openSchema();
-    showToast('Gedeeld schema geladen');
+    showToast(tr('Gedeeld schema geladen', 'Shared plan loaded'));
   }
 
   const active = useLiveQuery(() => db.workouts.filter((w) => !w.endedAt).first(), []);
@@ -128,8 +129,10 @@ export function App() {
           <>
             <RestBar />
             <button className="active-banner" onClick={() => setWorkoutOpen(true)}>
-              <span>Workout bezig: {active.name}</span>
-              <strong>Openen ›</strong>
+              <span>
+                {tr('Workout bezig', 'Workout in progress')}: {active.name}
+              </span>
+              <strong>{tr('Openen', 'Open')} ›</strong>
             </button>
           </>
         )}
@@ -156,8 +159,11 @@ export function App() {
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
       {shared && getPlan() && (
         <ActionSheet
-          title="Je opent een gedeeld schema. Wil je je eigen schema hiermee vervangen? Je gelogde workouts blijven bewaard."
-          actions={[{ label: 'Gedeeld schema gebruiken', onClick: acceptShared }]}
+          title={tr(
+            'Je opent een gedeeld schema. Wil je je eigen schema hiermee vervangen? Je gelogde workouts blijven bewaard.',
+            'You are opening a shared plan. Replace your own plan with it? Your logged workouts are kept.',
+          )}
+          actions={[{ label: tr('Gedeeld schema gebruiken', 'Use shared plan'), onClick: acceptShared }]}
           onClose={() => setShared(null)}
         />
       )}

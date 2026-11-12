@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { db, type Exercise } from '../db';
 import { Sheet } from './Sheet';
+import { tr } from '../i18n';
 
 export function NoteSheet({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const [text, setText] = useState(exercise.note ?? '');
@@ -12,21 +13,26 @@ export function NoteSheet({ exercise, onClose }: { exercise: Exercise; onClose: 
 
   return (
     <Sheet
-      title="Notitie"
+      title={tr('Notitie', 'Note')}
       onClose={onClose}
       action={
         <button className="link strong" onClick={save}>
-          Bewaar
+          {tr('Bewaar', 'Save')}
         </button>
       }
     >
-      <p className="muted small">Eén notitie voor {exercise.name}. Je ziet hem in elke workout en elk programma.</p>
+      <p className="muted small">
+        {tr(
+          `Eén notitie voor ${exercise.name}. Je ziet hem in elke workout en elk programma.`,
+          `One note for ${exercise.name}. You'll see it in every workout and every program.`,
+        )}
+      </p>
       <textarea
         className="note-input"
         autoFocus
         rows={4}
         value={text}
-        placeholder="Bijv. rek op stand 12, stoel op 4"
+        placeholder={tr('Bijv. rek op stand 12, stoel op 4', 'E.g. rack at 12, seat at 4')}
         onChange={(e) => setText(e.target.value)}
       />
     </Sheet>

@@ -2,12 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import type { Gewricht, Patroon } from '../coach/exercises';
 import { db, type Equipment, type Exercise } from '../db';
-import { EQUIPMENT_LABELS, MUSCLES } from '../library/exercises';
+import { EQUIPMENT_LABELS, MUSCLES, muscleLabel } from '../library/exercises';
 import { matches, normalize } from '../library/search';
 import { JointsField, PatternField } from './CoachFields';
 import { ExerciseInfo } from './ExerciseInfo';
 import { Sheet } from './Sheet';
 import { Thumb } from './Thumb';
+import { tr } from '../i18n';
 
 interface Props {
   onConfirm: (exercises: Exercise[]) => void;
@@ -53,11 +54,11 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
   }
 
   return (
-    <Sheet title="Oefeningen kiezen" onClose={onClose}>
+    <Sheet title={tr('Oefeningen kiezen', 'Choose exercises')} onClose={onClose}>
       <input
         className="search"
         type="search"
-        placeholder="Zoek op naam, spiergroep of materiaal"
+        placeholder={tr('Zoek op naam, spiergroep of materiaal', 'Search by name, muscle or equipment')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -68,7 +69,7 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
             className={`chip ${muscle === m ? 'active' : ''}`}
             onClick={() => setMuscle(muscle === m ? null : m)}
           >
-            {m}
+            {muscleLabel(m)}
           </button>
         ))}
       </div>
@@ -80,7 +81,7 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
               <button
                 className={`select-dot ${on ? 'on' : ''}`}
                 onClick={() => toggle(ex.id)}
-                aria-label={on ? 'Deselecteren' : 'Selecteren'}
+                aria-label={on ? tr('Deselecteren', 'Deselect') : tr('Selecteren', 'Select')}
               >
                 {on ? '✓' : ''}
               </button>
@@ -89,7 +90,7 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
                 <span className="grow">
                   <span className="block">{ex.name}</span>
                   <span className="muted small">
-                    {ex.muscle} · {EQUIPMENT_LABELS[ex.equipment]}
+                    {muscleLabel(ex.muscle)} · {EQUIPMENT_LABELS[ex.equipment]}
                   </span>
                 </span>
               </button>
@@ -99,16 +100,20 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
         {query.trim() && !known && (
           <li>
             <button className="list-item create-row" onClick={() => setCreating(true)}>
-              + “{query.trim()}” als eigen oefening
+              + “{query.trim()}” {tr('als eigen oefening', 'as custom exercise')}
             </button>
           </li>
         )}
-        {filtered.length === 0 && !query.trim() && <li className="empty">Geen oefeningen in deze groep.</li>}
+        {filtered.length === 0 && !query.trim() && (
+          <li className="empty">{tr('Geen oefeningen in deze groep.', 'No exercises in this group.')}</li>
+        )}
       </ul>
       {selected.length > 0 && (
         <div className="sticky-bottom">
           <button className="btn primary block big" onClick={confirm}>
-            {selected.length === 1 ? '1 oefening toevoegen' : `${selected.length} oefeningen toevoegen`}
+            {selected.length === 1
+              ? tr('1 oefening toevoegen', 'Add 1 exercise')
+              : tr(`${selected.length} oefeningen toevoegen`, `Add ${selected.length} exercises`)}
           </button>
         </div>
       )}
@@ -117,7 +122,9 @@ export function ExercisePicker({ onConfirm, onClose, exclude = [] }: Props) {
           exerciseId={preview}
           onClose={() => setPreview(null)}
           primary={{
-            label: selected.includes(preview) ? 'Geselecteerd ✓ (tik om te wissen)' : 'Selecteren',
+            label: selected.includes(preview)
+              ? tr('Geselecteerd ✓ (tik om te wissen)', 'Selected ✓ (tap to clear)')
+              : tr('Selecteren', 'Select'),
             onClick: () => {
               toggle(preview);
               setPreview(null);
@@ -156,30 +163,35 @@ export function NewExerciseSheet({
 
   return (
     <Sheet
-      title="Eigen oefening"
+      title={tr('Eigen oefening', 'Custom exercise')}
       onClose={onClose}
       action={
         <button className="link strong" onClick={save} disabled={!name.trim()}>
-          Bewaar
+          {tr('Bewaar', 'Save')}
         </button>
       }
     >
       <label className="field">
-        <span>Naam</span>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Bijv. Pendlay row" />
+        <span>{tr('Naam', 'Name')}</span>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={tr('Bijv. Pendlay row', 'E.g. Pendlay row')}
+        />
       </label>
       <div className="field">
-        <span>Spiergroep</span>
+        <span>{tr('Spiergroep', 'Muscle group')}</span>
         <div className="chips wrap">
           {MUSCLES.map((m) => (
             <button key={m} className={`chip ${muscle === m ? 'active' : ''}`} onClick={() => setMuscle(m)}>
-              {m}
+              {muscleLabel(m)}
             </button>
           ))}
         </div>
       </div>
       <div className="field">
-        <span>Materiaal</span>
+        <span>{tr('Materiaal', 'Equipment')}</span>
         <div className="chips wrap">
           {(Object.keys(EQUIPMENT_LABELS) as Equipment[]).map((k) => (
             <button key={k} className={`chip ${equipment === k ? 'active' : ''}`} onClick={() => setEquipment(k)}>

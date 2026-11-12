@@ -1,6 +1,7 @@
 import type { Workout } from '../db';
 import { PlanScreen } from './PlanScreen';
 import { TemplatesScreen } from './TemplatesScreen';
+import { tr } from '../i18n';
 
 export type TrainView = 'schema' | 'programs';
 
@@ -41,10 +42,10 @@ export function TrainScreen({ view, onView, active, onOpenWorkout, onEditTemplat
       <div className="train-switch">
         <div className="segmented">
           <button className={view === 'schema' ? 'active' : ''} onClick={() => choose('schema')}>
-            Schema
+            {tr('Schema', 'Plan')}
           </button>
           <button className={view === 'programs' ? 'active' : ''} onClick={() => choose('programs')}>
-            Programma's
+            {tr("Programma's", 'Programs')}
           </button>
         </div>
       </div>

@@ -16,6 +16,7 @@
 //   8. Wat je zelf invult gaat altijd voor: de engine rekent verder vanaf wat je echt deed.
 
 import { rondAf } from './generator';
+import { decimal, tr } from '../i18n';
 
 /** Eén gelogde werkset (warming-up telt niet mee). */
 export interface LogSet {
@@ -65,14 +66,14 @@ export interface Advies {
 
 // ---------- hulpjes ----------
 
-const kg = (n: number) => `${String(Math.round(n * 100) / 100).replace('.', ',')} kg`;
+const kg = (n: number) => `${decimal(Math.round(n * 100) / 100)} kg`;
 
 /** "3×10" als alle sets gelijk zijn, anders "10, 9 en 8". */
 export function setsTekst(reps: number[], eenheid: 'sec' | 'reps' = 'reps'): string {
   const u = eenheid === 'sec' ? ' sec' : '';
   if (reps.length && reps.every((r) => r === reps[0])) return `${reps.length}×${reps[0]}${u}`;
   if (reps.length < 2) return `${reps.join('')}${u}`;
-  return `${reps.slice(0, -1).join(', ')} en ${reps.at(-1)}${u}`;
+  return `${reps.slice(0, -1).join(', ')} ${tr('en', 'and')} ${reps.at(-1)}${u}`;
 }
 
 const geldig = (s: LogSet) => s.reps != null && s.reps > 0;
@@ -134,21 +135,33 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
         gewicht: null,
         reps: vul(lo),
         reden: sec
-          ? `Eerste keer: houd ${lo} sec vol. Lukt ${hi} sec? Dan maken we het zwaarder.`
-          : `Eerste keer: doe ${lo} tot ${hi} nette reps per set.`,
+          ? tr(
+              `Eerste keer: houd ${lo} sec vol. Lukt ${hi} sec? Dan maken we het zwaarder.`,
+              `First time: hold for ${lo} sec. Can you do ${hi} sec? Then we make it harder.`,
+            )
+          : tr(
+              `Eerste keer: doe ${lo} tot ${hi} nette reps per set.`,
+              `First time: do ${lo} to ${hi} clean reps per set.`,
+            ),
       };
     return oef.startgewicht != null
       ? {
           soort: 'start',
           gewicht: oef.startgewicht,
           reps: vul(lo),
-          reden: `Startgewicht ${kg(oef.startgewicht)}${oef.perHand ? ' per hand' : ''}, berekend uit je kracht. Haal je ${hi} reps makkelijk? Dan gaat het volgende keer omhoog.`,
+          reden: tr(
+            `Startgewicht ${kg(oef.startgewicht)}${oef.perHand ? ' per hand' : ''}, berekend uit je kracht. Haal je ${hi} reps makkelijk? Dan gaat het volgende keer omhoog.`,
+            `Starting weight ${kg(oef.startgewicht)}${oef.perHand ? ' per hand' : ''}, calculated from your strength. Easily make ${hi} reps? Then it goes up next time.`,
+          ),
         }
       : {
           soort: 'start',
           gewicht: null,
           reps: vul(lo),
-          reden: `Eerste keer: kies een gewicht waarmee je ${hi} reps net haalt.`,
+          reden: tr(
+            `Eerste keer: kies een gewicht waarmee je ${hi} reps net haalt.`,
+            `First time: pick a weight you can just manage for ${hi} reps.`,
+          ),
         };
   }
 
@@ -166,23 +179,31 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
         soort: 'variant',
         gewicht: w,
         reps: vul(hi),
-        reden: `Je haalt ${setsTekst(reps.slice(0, sets), oef.eenheid)}. Tijd voor ${
-          oef.zwaarder ? `een zwaardere variant, zoals ${oef.zwaarder},` : 'een zwaardere variant'
-        } of extra gewicht.`,
+        reden: tr(
+          `Je haalt ${setsTekst(reps.slice(0, sets), oef.eenheid)}. Tijd voor ${
+            oef.zwaarder ? `een zwaardere variant, zoals ${oef.zwaarder},` : 'een zwaardere variant'
+          } of extra gewicht.`,
+          `You can do ${setsTekst(reps.slice(0, sets), oef.eenheid)}. Time for ${
+            oef.zwaarder ? `a harder variation, like ${oef.zwaarder},` : 'a harder variation'
+          } or extra weight.`,
+        ),
       };
     const plus = sec ? 5 : 1;
     return {
       soort: 'meer reps',
       gewicht: w,
       reps: meerReps(plus),
-      reden: `Vorige keer ${setsTekst(reps, oef.eenheid)}. Probeer er per set ${sec ? '5 sec' : '1'} bij.`,
+      reden: tr(
+        `Vorige keer ${setsTekst(reps, oef.eenheid)}. Probeer er per set ${sec ? '5 sec' : '1'} bij.`,
+        `Last time ${setsTekst(reps, oef.eenheid)}. Try to add ${sec ? '5 sec' : '1 rep'} per set.`,
+      ),
     };
   }
 
   // Wat je zelf koos gaat voor: we rekenen verder vanaf je echte gewicht.
   const zelf =
     laatste.advies != null && w != null && !zelfde(w, laatste.advies)
-      ? `Je koos zelf ${kg(w)}; daar bouw ik op verder. `
+      ? tr(`Je koos zelf ${kg(w)}; daar bouw ik op verder. `, `You chose ${kg(w)} yourself; I'll build on that. `)
       : '';
   const gewicht = w ?? oef.startgewicht ?? null;
   if (gewicht == null)
@@ -190,7 +211,10 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'herhalen',
       gewicht: null,
       reps: vul(lo),
-      reden: `Vul het gewicht in dat je gebruikt, dan kan ik je volgen.`,
+      reden: tr(
+        'Vul het gewicht in dat je gebruikt, dan kan ik je volgen.',
+        'Fill in the weight you use, so I can keep track.',
+      ),
     };
 
   // Vastgelopen: na een eerdere deload een ander plan, anders 10% lichter.
@@ -200,7 +224,10 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'wissel',
       gewicht,
       reps: meerReps(0),
-      reden: `Je zit al ${vast} keer vast op ${kg(gewicht)}, ook na een lichtere periode. Probeer een ander repbereik (bijv. ${Math.max(3, lo - 2)}–${Math.max(5, hi - 2)}) of wissel naar ${oef.alternatief ?? 'een alternatief'}.`,
+      reden: tr(
+        `Je zit al ${vast} keer vast op ${kg(gewicht)}, ook na een lichtere periode. Probeer een ander repbereik (bijv. ${Math.max(3, lo - 2)}–${Math.max(5, hi - 2)}) of wissel naar ${oef.alternatief ?? 'een alternatief'}.`,
+        `You've been stuck at ${kg(gewicht)} ${vast} times, even after a lighter period. Try a different rep range (e.g. ${Math.max(3, lo - 2)}–${Math.max(5, hi - 2)}) or switch to ${oef.alternatief ?? 'an alternative'}.`,
+      ),
     };
   if (vast >= 2) {
     // 10% eraf, omlaag afgerond op de stap, en altijd minstens één stap lichter.
@@ -209,7 +236,10 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'deload',
       gewicht: nieuw,
       reps: vul(hi),
-      reden: `${vast} keer op rij vastgezeten op ${kg(gewicht)}. Even 10% lichter (${kg(nieuw)}), dan kom je sterker terug.`,
+      reden: tr(
+        `${vast} keer op rij vastgezeten op ${kg(gewicht)}. Even 10% lichter (${kg(nieuw)}), dan kom je sterker terug.`,
+        `Stuck at ${kg(gewicht)} ${vast} times in a row. Go 10% lighter for now (${kg(nieuw)}) and you'll come back stronger.`,
+      ),
     };
   }
 
@@ -219,7 +249,12 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'herhalen',
       gewicht,
       reps: meerReps(0),
-      reden: `${zelf}Je eerste set was RPE 10, dus maximaal. Zelfde gewicht; probeer het met wat meer ruimte te halen.`,
+      reden:
+        zelf +
+        tr(
+          'Je eerste set was RPE 10, dus maximaal. Zelfde gewicht; probeer het met wat meer ruimte te halen.',
+          'Your first set was RPE 10, so all-out. Same weight; try to make it with a bit more in the tank.',
+        ),
     };
 
   // Een set onder de ondergrens: eerst alles binnen het bereik.
@@ -228,7 +263,12 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'herhalen',
       gewicht,
       reps: vul(lo),
-      reden: `${zelf}Een set bleef onder de ${lo} reps. Zelfde gewicht tot je alle sets binnen ${lo}–${hi} haalt.`,
+      reden:
+        zelf +
+        tr(
+          `Een set bleef onder de ${lo} reps. Zelfde gewicht tot je alle sets binnen ${lo}–${hi} haalt.`,
+          `A set stayed below ${lo} reps. Same weight until you make all sets within ${lo}–${hi}.`,
+        ),
     };
 
   const licht = werk.length > 0 && werk.every((s) => s.rpe != null && s.rpe <= 7);
@@ -238,9 +278,18 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'zwaarder',
       gewicht: Math.round((gewicht + stap) * 100) / 100,
       reps: vul(lo),
-      reden: `${zelf}Vorige keer ${setsTekst(reps.slice(0, sets))} gehaald, dus +${kg(stap)}.${
-        licht ? ' Het voelde licht (RPE 7 of minder), daarom een extra stap.' : ''
-      }`,
+      reden:
+        zelf +
+        tr(
+          `Vorige keer ${setsTekst(reps.slice(0, sets))} gehaald, dus +${kg(stap)}.`,
+          `Last time you made ${setsTekst(reps.slice(0, sets))}, so +${kg(stap)}.`,
+        ) +
+        (licht
+          ? tr(
+              ' Het voelde licht (RPE 7 of minder), daarom een extra stap.',
+              ' It felt light (RPE 7 or less), so an extra step.',
+            )
+          : ''),
     };
   }
   if (licht)
@@ -248,14 +297,24 @@ export function adviseer(oef: OefInfo, historie: Sessie[]): Advies {
       soort: 'zwaarder',
       gewicht: Math.round((gewicht + oef.stap) * 100) / 100,
       reps: vul(lo),
-      reden: `${zelf}Alle sets voelden licht (RPE 7 of minder), dus +${kg(oef.stap)}.`,
+      reden:
+        zelf +
+        tr(
+          `Alle sets voelden licht (RPE 7 of minder), dus +${kg(oef.stap)}.`,
+          `All sets felt light (RPE 7 or less), so +${kg(oef.stap)}.`,
+        ),
     };
 
   return {
     soort: 'meer reps',
     gewicht,
     reps: meerReps(1),
-    reden: `${zelf}Vorige keer ${setsTekst(reps)} op ${kg(gewicht)}. Zelfde gewicht, probeer er per set 1 bij.`,
+    reden:
+      zelf +
+      tr(
+        `Vorige keer ${setsTekst(reps)} op ${kg(gewicht)}. Zelfde gewicht, probeer er per set 1 bij.`,
+        `Last time ${setsTekst(reps)} at ${kg(gewicht)}. Same weight, try to add 1 rep per set.`,
+      ),
   };
 }
 
@@ -271,12 +330,18 @@ export function herstelweek(input: { wekenGetraind: number; dalers: number }): {
   if (input.wekenGetraind >= WEKEN_TOT_HERSTEL)
     return {
       actief: true,
-      reden: `Je traint al ${input.wekenGetraind} weken op rij. Deze week is een herstelweek: minder sets, zelfde gewicht. Daarna kun je weer verder bouwen.`,
+      reden: tr(
+        `Je traint al ${input.wekenGetraind} weken op rij. Deze week is een herstelweek: minder sets, zelfde gewicht. Daarna kun je weer verder bouwen.`,
+        `You've trained ${input.wekenGetraind} weeks in a row. This week is a recovery week: fewer sets, same weight. After that you can keep building.`,
+      ),
     };
   if (input.dalers >= 3)
     return {
       actief: true,
-      reden: `Bij ${input.dalers} oefeningen ging het vorige keer minder goed. Dat is een teken van vermoeidheid. Deze week: minder sets, zelfde gewicht.`,
+      reden: tr(
+        `Bij ${input.dalers} oefeningen ging het vorige keer minder goed. Dat is een teken van vermoeidheid. Deze week: minder sets, zelfde gewicht.`,
+        `${input.dalers} exercises went less well last time. That's a sign of fatigue. This week: fewer sets, same weight.`,
+      ),
     };
   return { actief: false };
 }
@@ -301,7 +366,10 @@ export function herstelAdvies(oef: OefInfo, historie: Sessie[]): Advies {
     soort: 'herstel',
     gewicht: oef.progressie === 'reps' ? w : (w ?? normaal.gewicht),
     reps: Array.from({ length: sets }, (_, i) => Math.min(oef.reps[1], reps[i] ?? reps.at(-1) ?? oef.reps[0])),
-    reden: `Herstelweek: ${sets} in plaats van ${oef.sets} sets, zelfde gewicht. Rustig aan, volgende week weer vol.`,
+    reden: tr(
+      `Herstelweek: ${sets} in plaats van ${oef.sets} sets, zelfde gewicht. Rustig aan, volgende week weer vol.`,
+      `Recovery week: ${sets} instead of ${oef.sets} sets, same weight. Take it easy, full effort again next week.`,
+    ),
   };
 }
 

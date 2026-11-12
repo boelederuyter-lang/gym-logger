@@ -38,6 +38,7 @@ import { showToast } from '../toast';
 import { useNow } from '../useNow';
 import { warmupSets } from '../warmup';
 import { supersetInfo, toggleLink } from '../supersets';
+import { locale, tr } from '../i18n';
 
 interface Props {
   workout: Workout;
@@ -59,30 +60,63 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
   async function finish() {
     if (editing) {
       const open = (sets ?? []).filter((s) => !s.done).length;
-      if (open > 0 && !confirm(`${open} set(s) zijn niet afgevinkt en worden niet bewaard. Opslaan?`)) return;
+      if (
+        open > 0 &&
+        !confirm(
+          tr(
+            `${open} set(s) zijn niet afgevinkt en worden niet bewaard. Opslaan?`,
+            `${open} set(s) are not ticked off and won't be saved. Save?`,
+          ),
+        )
+      )
+        return;
       await finishEdit(workout.id);
-      showToast('Workout bijgewerkt');
+      showToast(tr('Workout bijgewerkt', 'Workout updated'));
       onFinished(workout.id);
       return;
     }
     const all = sets ?? [];
     const done = all.filter((s) => s.done);
     if (done.length === 0) {
-      if (confirm('Je hebt nog geen sets afgevinkt. Workout verwijderen?')) {
+      if (
+        confirm(
+          tr(
+            'Je hebt nog geen sets afgevinkt. Workout verwijderen?',
+            "You haven't ticked off any sets. Delete workout?",
+          ),
+        )
+      ) {
         await deleteWorkout(workout.id);
         stopRest();
       }
       return;
     }
     const open = all.length - done.length;
-    if (open > 0 && !confirm(`${open} set(s) zijn niet afgevinkt en worden niet opgeslagen. Afronden?`)) return;
+    if (
+      open > 0 &&
+      !confirm(
+        tr(
+          `${open} set(s) zijn niet afgevinkt en worden niet opgeslagen. Afronden?`,
+          `${open} set(s) are not ticked off and won't be saved. Finish?`,
+        ),
+      )
+    )
+      return;
     await finishWorkout(workout.id);
     stopRest();
     onFinished(workout.id);
   }
 
   async function cancel() {
-    if (!confirm('Workout annuleren? Alles van deze training wordt verwijderd.')) return;
+    if (
+      !confirm(
+        tr(
+          'Workout annuleren? Alles van deze training wordt verwijderd.',
+          'Cancel workout? Everything from this session will be deleted.',
+        ),
+      )
+    )
+      return;
     await deleteWorkout(workout.id);
     stopRest();
   }
@@ -93,7 +127,7 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
         {editing ? (
           <span />
         ) : (
-          <button className="icon-btn" onClick={onMinimize} aria-label="Minimaliseren">
+          <button className="icon-btn" onClick={onMinimize} aria-label={tr('Minimaliseren', 'Minimise')}>
             <Icon name="down" />
           </button>
         )}
@@ -105,18 +139,21 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
           />
           <span className="small muted">
             {editing
-              ? `Bewerken · ${new Date(workout.startedAt).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}`
+              ? `${tr('Bewerken', 'Editing')} · ${new Date(workout.startedAt).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' })}`
               : fmtDuration(now - workout.startedAt)}
           </span>
         </div>
         <button className="btn primary small-btn" onClick={finish}>
-          {editing ? 'Opslaan' : 'Klaar'}
+          {editing ? tr('Opslaan', 'Save') : tr('Klaar', 'Finish')}
         </button>
-        <div className="progress" aria-label={`${doneCount} van ${totalCount} sets gedaan`}>
+        <div
+          className="progress"
+          aria-label={tr(`${doneCount} van ${totalCount} sets gedaan`, `${doneCount} of ${totalCount} sets done`)}
+        >
           <div className="progress-fill" style={{ width: `${totalCount ? (doneCount / totalCount) * 100 : 0}%` }} />
         </div>
         <span className="progress-label small muted">
-          {doneCount} van {totalCount} sets gedaan
+          {tr(`${doneCount} van ${totalCount} sets gedaan`, `${doneCount} of ${totalCount} sets done`)}
         </span>
       </header>
 
@@ -124,18 +161,23 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
         {!editing && left > 5 && (
           <button className="time-bar" onClick={() => setTimeOpen(true)}>
             <span>
-              Nog ± <strong className="num">{left} min</strong>
+              {tr('Nog ', '')}± <strong className="num">{left} min</strong>
+              {tr('', ' left')}
             </span>
-            <span className="time-bar-action">Weinig tijd?</span>
+            <span className="time-bar-action">{tr('Weinig tijd?', 'Short on time?')}</span>
           </button>
         )}
         {workout.herstel && (
           <section className="coach-banner">
-            <strong>Herstelweek</strong>
+            <strong>{tr('Herstelweek', 'Recovery week')}</strong>
             <p>{workout.herstel}</p>
           </section>
         )}
-        {workout.exerciseIds.length === 0 && <p className="empty">Voeg je eerste oefening toe om te beginnen.</p>}
+        {workout.exerciseIds.length === 0 && (
+          <p className="empty">
+            {tr('Voeg je eerste oefening toe om te beginnen.', 'Add your first exercise to get started.')}
+          </p>
+        )}
         {workout.exerciseIds.map((exId) => (
           <ExerciseCard
             key={exId}
@@ -146,13 +188,18 @@ export function WorkoutScreen({ workout, onMinimize, onFinished, editing = false
           />
         ))}
         <button className="btn secondary block" onClick={() => setPicking(true)}>
-          + Oefening toevoegen
+          + {tr('Oefening toevoegen', 'Add exercise')}
         </button>
         {editing ? (
-          <p className="small muted center">Wijzigingen worden direct bewaard. Alleen afgevinkte sets tellen mee.</p>
+          <p className="small muted center">
+            {tr(
+              'Wijzigingen worden direct bewaard. Alleen afgevinkte sets tellen mee.',
+              'Changes are saved right away. Only ticked-off sets count.',
+            )}
+          </p>
         ) : (
           <button className="btn danger-text block" onClick={cancel}>
-            Workout annuleren
+            {tr('Workout annuleren', 'Cancel workout')}
           </button>
         )}
       </main>
@@ -254,7 +301,12 @@ function ExerciseCard({
       // In a superset you go straight to the next exercise; rest comes after the last one.
       const nextId = workout.exerciseIds[workout.exerciseIds.indexOf(exerciseId) + 1];
       const next = await db.exercises.get(nextId);
-      showToast(`Superset ${superset.label}: door naar ${next?.name ?? 'de volgende oefening'}`);
+      showToast(
+        tr(
+          `Superset ${superset.label}: door naar ${next?.name ?? 'de volgende oefening'}`,
+          `Superset ${superset.label}: on to ${next?.name ?? 'the next exercise'}`,
+        ),
+      );
     } else {
       startRest(set.warmup ? Math.min(60, rest) : rest);
     }
@@ -268,20 +320,33 @@ function ExerciseCard({
     const p = firstOpen >= 0 ? prev[workIndex[firstOpen]] : undefined;
     const work = firstOpen >= 0 ? (sets[firstOpen].weight ?? p?.weight) : undefined;
     if (!work) {
-      showToast('Vul eerst het gewicht van je eerste werkset in');
+      showToast(
+        tr('Vul eerst het gewicht van je eerste werkset in', 'First fill in the weight of your first work set'),
+      );
       return;
     }
     const planned = warmupSets(work, exercise?.equipment === 'barbell', settings.barWeight, settings.weightStep);
     if (!planned.length) {
-      showToast('Dit gewicht is te licht voor warming-up sets');
+      showToast(tr('Dit gewicht is te licht voor warming-up sets', 'This weight is too light for warm-up sets'));
       return;
     }
     await addWarmupSets(workout.id, exerciseId, planned);
-    showToast(planned.length === 1 ? '1 warming-up set toegevoegd' : `${planned.length} warming-up sets toegevoegd`);
+    showToast(
+      planned.length === 1
+        ? tr('1 warming-up set toegevoegd', '1 warm-up set added')
+        : tr(`${planned.length} warming-up sets toegevoegd`, `${planned.length} warm-up sets added`),
+    );
   }
 
   async function removeExercise() {
-    if (confirm(`${exercise?.name ?? 'Oefening'} uit deze workout verwijderen?`)) {
+    if (
+      confirm(
+        tr(
+          `${exercise?.name ?? 'Oefening'} uit deze workout verwijderen?`,
+          `Remove ${exercise?.name ?? 'exercise'} from this workout?`,
+        ),
+      )
+    ) {
       await removeExerciseFromWorkout(workout, exerciseId);
     }
   }
@@ -290,21 +355,28 @@ function ExerciseCard({
   const linked = workout.supersets?.includes(exerciseId) ?? false;
   const hasOpen = sets.some((s) => !s.done);
   const menu: Action[] = [
-    ...(!editing && hasOpen ? [{ label: 'Bezet? Kies een vervanger', onClick: () => setOverlay('replace') }] : []),
-    { label: 'Uitvoering bekijken', onClick: () => setOverlay('info') },
+    ...(!editing && hasOpen
+      ? [{ label: tr('Bezet? Kies een vervanger', 'Taken? Pick a replacement'), onClick: () => setOverlay('replace') }]
+      : []),
+    { label: tr('Uitvoering bekijken', 'How to do it'), onClick: () => setOverlay('info') },
     ...(isLast && !linked
       ? []
       : [
           {
-            label: linked ? 'Superset met volgende opheffen' : 'Superset met volgende oefening',
+            label: linked
+              ? tr('Superset met volgende opheffen', 'Unlink superset with next')
+              : tr('Superset met volgende oefening', 'Superset with next exercise'),
             onClick: () => db.workouts.update(workout.id, { supersets: toggleLink(workout.supersets, exerciseId) }),
           },
         ]),
-    { label: 'Warming-up sets toevoegen', onClick: addWarmups },
-    { label: exercise?.note ? 'Notitie bewerken' : 'Notitie toevoegen', onClick: () => setOverlay('note') },
-    { label: `Rusttijd: ${fmtRest(rest)}`, onClick: () => setOverlay('rest') },
-    { label: 'Voortgang bekijken', onClick: () => setOverlay('progress') },
-    { label: 'Oefening verwijderen', onClick: removeExercise, danger: true },
+    { label: tr('Warming-up sets toevoegen', 'Add warm-up sets'), onClick: addWarmups },
+    {
+      label: exercise?.note ? tr('Notitie bewerken', 'Edit note') : tr('Notitie toevoegen', 'Add note'),
+      onClick: () => setOverlay('note'),
+    },
+    { label: `${tr('Rusttijd', 'Rest time')}: ${fmtRest(rest)}`, onClick: () => setOverlay('rest') },
+    { label: tr('Voortgang bekijken', 'View progress'), onClick: () => setOverlay('progress') },
+    { label: tr('Oefening verwijderen', 'Remove exercise'), onClick: removeExercise, danger: true },
   ];
 
   // Coach workouts ask how heavy the set you just ticked off felt (optional, one tap).
@@ -321,7 +393,7 @@ function ExerciseCard({
       {superset && (
         <span className="superset-tag">
           Superset {superset.label} · {superset.position}/{superset.size}
-          {superset.last ? ' · daarna rust' : ' · geen rust'}
+          {superset.last ? tr(' · daarna rust', ' · then rest') : tr(' · geen rust', ' · no rest')}
         </span>
       )}
       <div className="card-header">
@@ -329,13 +401,20 @@ function ExerciseCard({
         <div className="grow">
           <h3>{exercise?.name ?? '…'}</h3>
           <span className="small muted">
-            Rust {fmtRest(rest)}
+            {tr('Rust', 'Rest')} {fmtRest(rest)}
             {!!workout.progress?.[exerciseId] && (
-              <span className="progress-up"> · ↑ {fmtWeight(workout.progress[exerciseId])} kg t.o.v. vorige keer</span>
+              <span className="progress-up">
+                {' '}
+                · ↑ {fmtWeight(workout.progress[exerciseId])} kg {tr('t.o.v. vorige keer', 'vs last time')}
+              </span>
             )}
           </span>
         </div>
-        <button className="icon-btn" onClick={() => setOverlay('menu')} aria-label="Menu van oefening">
+        <button
+          className="icon-btn"
+          onClick={() => setOverlay('menu')}
+          aria-label={tr('Menu van oefening', 'Exercise menu')}
+        >
           <Icon name="more" />
         </button>
       </div>
@@ -343,7 +422,7 @@ function ExerciseCard({
       {workout.coach?.[exerciseId] && <CoachLine advies={workout.coach[exerciseId]} />}
       <div className="set-grid set-head">
         <span>Set</span>
-        <span>Vorige</span>
+        <span>{tr('Vorige', 'Previous')}</span>
         <span>kg</span>
         <span>Reps</span>
         <span>✓</span>
@@ -379,7 +458,7 @@ function ExerciseCard({
         <ExerciseInfo
           exerciseId={exerciseId}
           onClose={() => setOverlay(null)}
-          primary={{ label: 'Terug naar je workout', onClick: () => setOverlay(null) }}
+          primary={{ label: tr('Terug naar je workout', 'Back to your workout'), onClick: () => setOverlay(null) }}
         />
       )}
       {overlay === 'note' && exercise && <NoteSheet exercise={exercise} onClose={() => setOverlay(null)} />}
@@ -407,21 +486,23 @@ function ExerciseCard({
 
 function setActions(set: WorkoutSet, exercise: Exercise | undefined, recompute: () => Promise<unknown>): Action[] {
   return [
-    { label: 'Set dupliceren', onClick: () => duplicateSet(set) },
+    { label: tr('Set dupliceren', 'Duplicate set'), onClick: () => duplicateSet(set) },
     {
-      label: set.warmup ? 'Markeren als werkset' : 'Markeren als warming-up',
+      label: set.warmup
+        ? tr('Markeren als werkset', 'Mark as work set')
+        : tr('Markeren als warming-up', 'Mark as warm-up'),
       onClick: async () => {
         await db.sets.update(set.id, { warmup: !set.warmup, pr: undefined });
         await recompute();
       },
     },
     {
-      label: 'Set verwijderen',
+      label: tr('Set verwijderen', 'Delete set'),
       danger: true,
       onClick: async () => {
         const restore = await deleteSet(set);
         await recompute();
-        showToast(`Set verwijderd${exercise ? ` (${exercise.name})` : ''}`, async () => {
+        showToast(`${tr('Set verwijderd', 'Set deleted')}${exercise ? ` (${exercise.name})` : ''}`, async () => {
           await restore();
           await recompute();
         });
@@ -483,12 +564,16 @@ function SetRow({
           db.sets.update(set.id, { reps: n == null ? null : Math.round(n) }).then(onEdited);
         }}
       />
-      <button className={`check ${set.done ? 'on' : ''}`} onClick={onToggle} aria-label="Set afvinken">
+      <button
+        className={`check ${set.done ? 'on' : ''}`}
+        onClick={onToggle}
+        aria-label={tr('Set afvinken', 'Tick off set')}
+      >
         ✓
       </button>
       {(set.failure || set.rir != null || set.rpe != null) && (
         <span className="effort">
-          {set.failure && <span className="effort-tag fail">Tot falen</span>}
+          {set.failure && <span className="effort-tag fail">{tr('Tot falen', 'To failure')}</span>}
           {set.rir != null && <span className="effort-tag">RIR {fmtWeight(set.rir)}</span>}
           {set.rpe != null && <span className="effort-tag">RPE {fmtWeight(set.rpe)}</span>}
         </span>
@@ -519,22 +604,25 @@ function QuickAdjust({
         <div className="quick-group">
           <button
             onClick={() => change({ weight: Math.max(0, round2(weight - step)) })}
-            aria-label={`${fmtWeight(step)} kg minder`}
+            aria-label={tr(`${fmtWeight(step)} kg minder`, `${fmtWeight(step)} kg less`)}
           >
             −
           </button>
           <span className="num">{fmtWeight(weight)} kg</span>
-          <button onClick={() => change({ weight: round2(weight + step) })} aria-label={`${fmtWeight(step)} kg meer`}>
+          <button
+            onClick={() => change({ weight: round2(weight + step) })}
+            aria-label={tr(`${fmtWeight(step)} kg meer`, `${fmtWeight(step)} kg more`)}
+          >
             +
           </button>
         </div>
       )}
       <div className="quick-group">
-        <button onClick={() => change({ reps: Math.max(0, reps - 1) })} aria-label="1 rep minder">
+        <button onClick={() => change({ reps: Math.max(0, reps - 1) })} aria-label={tr('1 rep minder', '1 rep less')}>
           −
         </button>
         <span className="num">{reps} reps</span>
-        <button onClick={() => change({ reps: reps + 1 })} aria-label="1 rep meer">
+        <button onClick={() => change({ reps: reps + 1 })} aria-label={tr('1 rep meer', '1 rep more')}>
           +
         </button>
       </div>
@@ -586,7 +674,7 @@ function RpeAsk({ set, onDone }: { set: WorkoutSet; onDone: () => void }) {
   return (
     <div className="rpe-ask">
       <span className="small">
-        Hoe zwaar? <span className="muted">10 = niets meer over</span>
+        {tr('Hoe zwaar?', 'How hard?')} <span className="muted">{tr('10 = niets meer over', '10 = nothing left')}</span>
       </span>
       <div className="rpe-chips">
         {[6, 7, 8, 9, 10].map((r) => (
@@ -601,7 +689,7 @@ function RpeAsk({ set, onDone }: { set: WorkoutSet; onDone: () => void }) {
             onDone();
           }}
         >
-          Overslaan
+          {tr('Overslaan', 'Skip')}
         </button>
       </div>
     </div>

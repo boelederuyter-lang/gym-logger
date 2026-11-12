@@ -1,5 +1,6 @@
 import { fmtRest } from '../format';
 import { Sheet } from './Sheet';
+import { tr } from '../i18n';
 
 export const REST_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300];
 
@@ -13,7 +14,7 @@ export function RestSheet({
   onClose: () => void;
 }) {
   return (
-    <Sheet title="Rusttijd" onClose={onClose}>
+    <Sheet title={tr('Rusttijd', 'Rest time')} onClose={onClose}>
       <div className="chips wrap">
         {REST_OPTIONS.map((s) => (
           <button

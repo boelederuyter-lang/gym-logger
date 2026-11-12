@@ -1,4 +1,5 @@
 import { hidePrBanner, usePrBanner } from '../prBanner';
+import { tr } from '../i18n';
 
 export function PrBanner() {
   const pr = usePrBanner();
@@ -7,7 +8,9 @@ export function PrBanner() {
     <button className="pr-banner" key={pr.id} onClick={hidePrBanner} aria-live="polite">
       <span className="pr-trophy">🏆</span>
       <span className="grow">
-        <strong className="block">Nieuw PR, {pr.exercise}</strong>
+        <strong className="block">
+          {tr('Nieuw PR', 'New PR')}, {pr.exercise}
+        </strong>
         <span className="block">{pr.detail}</span>
         <span className="block small">{pr.previous}</span>
       </span>

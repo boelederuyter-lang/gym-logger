@@ -1,6 +1,7 @@
 import { adjustRest, stopRest, useRest } from '../restTimer';
 import { fmtDuration } from '../format';
 import { useNow } from '../useNow';
+import { tr } from '../i18n';
 
 export function RestBar() {
   const rest = useRest();
@@ -17,7 +18,7 @@ export function RestBar() {
         −15
       </button>
       <div className="rest-time">
-        <span className="small muted">{done ? 'Rust voorbij' : 'Rust'}</span>
+        <span className="small muted">{done ? tr('Rust voorbij', 'Rest over') : tr('Rust', 'Rest')}</span>
         <strong>{done ? `+${fmtDuration(-left)}` : fmtDuration(left)}</strong>
       </div>
       <button className="rest-btn" onClick={() => adjustRest(15)}>

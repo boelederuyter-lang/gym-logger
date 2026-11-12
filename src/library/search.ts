@@ -1,4 +1,4 @@
-import { EQUIPMENT_LABELS, type Equipment } from './exercises';
+import { EQUIPMENT_LABELS, muscleLabel, type Equipment } from './exercises';
 
 /** Lowercase, without accents and punctuation, single spaces. */
 export function normalize(s: string): string {
@@ -20,6 +20,10 @@ export interface Searchable {
 export function matches(ex: Searchable, query: string): boolean {
   const q = normalize(query);
   if (!q) return true;
-  const hay = normalize([ex.name, ...(ex.aliases ?? []), ex.muscle, EQUIPMENT_LABELS[ex.equipment] ?? ''].join(' | '));
+  const hay = normalize(
+    [ex.name, ...(ex.aliases ?? []), ex.muscle, muscleLabel(ex.muscle), EQUIPMENT_LABELS[ex.equipment] ?? ''].join(
+      ' | ',
+    ),
+  );
   return q.split(' ').every((word) => hay.includes(word));
 }

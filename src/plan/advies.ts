@@ -11,6 +11,7 @@ import {
 } from '../coach/progression';
 import { COACH_BY_ID, geschiktVoor } from '../coach/exercises';
 import { db, type Workout } from '../db';
+import { tr } from '../i18n';
 import type { SchemaOefening } from './generator';
 import type { PlanState } from './store';
 
@@ -75,7 +76,11 @@ export async function bepaalHerstel(
 ): Promise<{ actief: boolean; reden?: string; nieuw: boolean }> {
   const deze = maandagVan(now);
   if (plan.herstelWeken?.includes(deze))
-    return { actief: true, reden: 'Herstelweek: minder sets, zelfde gewicht.', nieuw: false };
+    return {
+      actief: true,
+      reden: tr('Herstelweek: minder sets, zelfde gewicht.', 'Recovery week: fewer sets, same weight.'),
+      nieuw: false,
+    };
   const workouts = await db.workouts.filter((w) => !!w.endedAt && !!w.plan).toArray();
   const weken = wekenOpRij(
     workouts.map((w) => w.startedAt),

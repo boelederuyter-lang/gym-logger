@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -7,6 +8,7 @@ const base = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base,
+  test: { setupFiles: ['src/__tests__/setup.ts'] },
   plugins: [
     react(),
     VitePWA({

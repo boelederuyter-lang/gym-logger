@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { addExercisesToWorkout, addToTemplate, db, startWorkout, type Exercise } from '../db';
-import { coachInfo, PATROON_LABEL, type CoachOefening } from '../coach/exercises';
-import { animFor, EQUIPMENT_LABELS } from '../library/exercises';
+import { coachInfo, GEWRICHT_LABEL, PATROON_LABEL, SPIER_LABEL, type CoachOefening } from '../coach/exercises';
+import { NIVEAU_TEKST } from '../coach/profile';
+import { animFor, EQUIPMENT_LABELS, muscleLabel } from '../library/exercises';
 import { JointsField, PatternField } from './CoachFields';
 import { showToast } from '../toast';
 import { ActionSheet } from './ActionSheet';
@@ -10,6 +11,7 @@ import { ExerciseFigure } from './Figure';
 import { NoteBlock, NoteSheet } from './NoteSheet';
 import { ProgressSheet } from './ProgressSheet';
 import { Sheet } from './Sheet';
+import { decimal, tr } from '../i18n';
 
 interface Props {
   exerciseId: number;
@@ -45,7 +47,7 @@ export function ExerciseInfo({ exerciseId: initialId, onClose, primary, onOpenWo
   async function addToWorkout(ex: Exercise) {
     if (active) {
       await addExercisesToWorkout(active, [ex]);
-      showToast(`${ex.name} toegevoegd aan je workout`);
+      showToast(tr(`${ex.name} toegevoegd aan je workout`, `${ex.name} added to your workout`));
       onClose();
     } else {
       await startWorkout(undefined, [ex]);
@@ -60,16 +62,20 @@ export function ExerciseInfo({ exerciseId: initialId, onClose, primary, onOpenWo
         <ExerciseFigure anim={animFor(ex)} animate />
       </div>
       <div className="inline wrap-gap">
-        <span className="tag">{ex.muscle}</span>
+        <span className="tag">{muscleLabel(ex.muscle)}</span>
         <span className="tag">{EQUIPMENT_LABELS[ex.equipment]}</span>
       </div>
       {ex.tip && <p className="tip">{ex.tip}</p>}
-      {ex.aliases.length > 0 && <p className="small muted">Ook bekend als {ex.aliases.join(', ')}</p>}
+      {ex.aliases.length > 0 && (
+        <p className="small muted">
+          {tr('Ook bekend als', 'Also known as')} {ex.aliases.join(', ')}
+        </p>
+      )}
       <NoteBlock note={ex.note} />
       <CoachBlock info={info} custom={!ex.slug} onEdit={() => setEditingCoach(true)} />
       {!primary && alternatives && alternatives.length > 0 && (
         <div className="field">
-          <span>Alternatieven</span>
+          <span>{tr('Alternatieven', 'Alternatives')}</span>
           <div className="chips wrap">
             {alternatives.map((a) => (
               <button
@@ -94,38 +100,46 @@ export function ExerciseInfo({ exerciseId: initialId, onClose, primary, onOpenWo
       ) : (
         <div className="stack">
           <button className="btn primary block" onClick={() => addToWorkout(ex)}>
-            {active ? 'Toevoegen aan je workout' : 'Start een workout met deze oefening'}
+            {active
+              ? tr('Toevoegen aan je workout', 'Add to your workout')
+              : tr('Start een workout met deze oefening', 'Start a workout with this exercise')}
           </button>
           <button className="btn secondary block" onClick={() => setChoosingProgram(true)}>
-            Toevoegen aan een programma
+            {tr('Toevoegen aan een programma', 'Add to a program')}
           </button>
           <button className="btn secondary block" onClick={() => setProgress(true)}>
-            Je voortgang bekijken
+            {tr('Je voortgang bekijken', 'View your progress')}
           </button>
           <button className="btn ghost block" onClick={() => setEditingNote(true)}>
-            {ex.note ? 'Notitie bewerken' : 'Notitie toevoegen'}
+            {ex.note ? tr('Notitie bewerken', 'Edit note') : tr('Notitie toevoegen', 'Add note')}
           </button>
         </div>
       )}
 
       {choosingProgram && (
         <ActionSheet
-          title={templates?.length ? 'Kies een programma' : 'Je hebt nog geen programma’s'}
+          title={
+            templates?.length
+              ? tr('Kies een programma', 'Choose a program')
+              : tr('Je hebt nog geen programma’s', "You don't have any programs yet")
+          }
           onClose={() => setChoosingProgram(false)}
           actions={[
             ...(templates ?? []).map((t) => ({
               label: t.name,
               onClick: async () => {
                 await addToTemplate(t.id, [ex]);
-                showToast(`${ex.name} toegevoegd aan ${t.name}`);
+                showToast(tr(`${ex.name} toegevoegd aan ${t.name}`, `${ex.name} added to ${t.name}`));
               },
             })),
             {
-              label: '+ Nieuw programma',
+              label: tr('+ Nieuw programma', '+ New program'),
               onClick: async () => {
-                const id = await db.templates.add({ name: ex.muscle, items: [], createdAt: Date.now() });
+                const id = await db.templates.add({ name: muscleLabel(ex.muscle), items: [], createdAt: Date.now() });
                 await addToTemplate(id, [ex]);
-                showToast(`Programma “${ex.muscle}” gemaakt`);
+                showToast(
+                  tr(`Programma “${muscleLabel(ex.muscle)}” gemaakt`, `Program “${muscleLabel(ex.muscle)}” created`),
+                );
               },
             },
           ]}
@@ -143,37 +157,43 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** What the coach knows about an exercise: pattern, muscles, joints and default reps and rest. */
 function CoachBlock({ info, custom, onEdit }: { info: CoachOefening; custom: boolean; onEdit: () => void }) {
   const reps = `${info.reps[0]}–${info.reps[1]}${info.eenheid === 'sec' ? ' sec' : ' reps'}`;
-  const rest = info.rust >= 60 ? `${info.rust / 60} min`.replace('.', ',') : `${info.rust} sec`;
+  const rest = info.rust >= 60 ? `${decimal(info.rust / 60)} min` : `${info.rust} sec`;
   return (
     <div className="coach-facts">
       <div>
-        <span>Patroon</span>
+        <span>{tr('Patroon', 'Pattern')}</span>
         <strong>{PATROON_LABEL[info.patroon]}</strong>
       </div>
       <div>
-        <span>Spieren</span>
-        <strong>{info.primair.map(cap).join(', ')}</strong>
-        {info.secundair.length > 0 && <small className="muted">+ {info.secundair.join(', ')}</small>}
+        <span>{tr('Spieren', 'Muscles')}</span>
+        <strong>{info.primair.map((s) => cap(SPIER_LABEL[s])).join(', ')}</strong>
+        {info.secundair.length > 0 && (
+          <small className="muted">+ {info.secundair.map((s) => SPIER_LABEL[s]).join(', ')}</small>
+        )}
       </div>
       <div>
-        <span>Standaard</span>
+        <span>{tr('Standaard', 'Default')}</span>
         <strong>
-          {reps} · {rest} rust
+          {reps} · {rest} {tr('rust', 'rest')}
         </strong>
       </div>
       {!custom && info.niveau !== 'beginner' && (
         <div>
-          <span>Niveau</span>
-          <strong>{cap(info.niveau)}</strong>
+          <span>{tr('Niveau', 'Level')}</span>
+          <strong>{NIVEAU_TEKST[info.niveau][0]}</strong>
         </div>
       )}
       <div>
-        <span>Belast</span>
-        <strong>{info.gewrichten.length ? info.gewrichten.map(cap).join(', ') : 'Niets in het bijzonder'}</strong>
+        <span>{tr('Belast', 'Loads')}</span>
+        <strong>
+          {info.gewrichten.length
+            ? info.gewrichten.map((g) => cap(GEWRICHT_LABEL[g])).join(', ')
+            : tr('Niets in het bijzonder', 'Nothing in particular')}
+        </strong>
       </div>
       {custom && (
         <button className="link strong" onClick={onEdit}>
-          Coachgegevens aanpassen
+          {tr('Coachgegevens aanpassen', 'Edit coach details')}
         </button>
       )}
     </div>
@@ -189,11 +209,11 @@ function CoachEditSheet({ exercise, onClose }: { exercise: Exercise; onClose: ()
   }
   return (
     <Sheet
-      title="Coachgegevens"
+      title={tr('Coachgegevens', 'Coach details')}
       onClose={onClose}
       action={
         <button className="link strong" onClick={save}>
-          Bewaar
+          {tr('Bewaar', 'Save')}
         </button>
       }
     >

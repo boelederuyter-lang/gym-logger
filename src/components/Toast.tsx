@@ -1,4 +1,5 @@
 import { hideToast, useToast } from '../toast';
+import { tr } from '../i18n';
 
 export function Toast() {
   const toast = useToast();
@@ -14,7 +15,7 @@ export function Toast() {
             await toast.undo!();
           }}
         >
-          Ongedaan maken
+          {tr('Ongedaan maken', 'Undo')}
         </button>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { lang, tr } from '../i18n';
+import { ENGLISH, MUSCLE_EN } from './english';
 import { plank, type Anim, type PoseSpec, type Prop, type V } from './poses';
 
 export type Muscle = 'Borst' | 'Rug' | 'Schouders' | 'Benen' | 'Billen' | 'Armen' | 'Core' | 'Hele lichaam';
@@ -6,13 +8,13 @@ export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweig
 export const MUSCLES: Muscle[] = ['Borst', 'Rug', 'Schouders', 'Benen', 'Billen', 'Armen', 'Core', 'Hele lichaam'];
 
 export const EQUIPMENT_LABELS: Record<Equipment, string> = {
-  barbell: 'Stang',
+  barbell: tr('Stang', 'Barbell'),
   dumbbell: 'Dumbbell',
   machine: 'Machine',
-  cable: 'Kabel',
-  bodyweight: 'Lichaamsgewicht',
+  cable: tr('Kabel', 'Cable'),
+  bodyweight: tr('Lichaamsgewicht', 'Bodyweight'),
   kettlebell: 'Kettlebell',
-  other: 'Overig',
+  other: tr('Overig', 'Other'),
 };
 
 export interface LibraryExercise {
@@ -72,7 +74,7 @@ const e = (
 
 // ---------- library ----------
 
-export const LIBRARY: LibraryExercise[] = [
+const DUTCH_LIBRARY: LibraryExercise[] = [
   // Borst
   e(
     'bankdrukken',
@@ -1852,6 +1854,25 @@ export const LIBRARY: LibraryExercise[] = [
     },
   ),
 ];
+
+/**
+ * The library in the app's language. In English the name and tip come from english.ts and the
+ * Dutch name becomes an alias, so search and linking old exercises keep working.
+ */
+export const LIBRARY: LibraryExercise[] =
+  lang() === 'en'
+    ? DUTCH_LIBRARY.map((x) => {
+        const en = ENGLISH[x.slug];
+        if (!en) return x;
+        const aliases = [x.name, ...x.aliases].filter((a) => a.toLowerCase() !== en[0].toLowerCase());
+        return { ...x, name: en[0], tip: en[1], aliases };
+      })
+    : DUTCH_LIBRARY;
+
+/** A muscle group as shown on screen (the stored value stays Dutch). */
+export function muscleLabel(muscle: string): string {
+  return lang() === 'en' ? (MUSCLE_EN[muscle] ?? muscle) : muscle;
+}
 
 export const LIBRARY_BY_SLUG = new Map(LIBRARY.map((x) => [x.slug, x]));
 

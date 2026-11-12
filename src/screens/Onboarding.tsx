@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { Choices } from '../components/Choices';
 import { Icon } from '../components/Icon';
-import { GEWRICHTEN, MATERIALEN, SPIERGROEPEN, type Materiaal, type MateriaalKeuze } from '../coach/exercises';
+import {
+  GEWRICHT_LABEL,
+  GEWRICHTEN,
+  GROEP_LABEL,
+  MATERIALEN,
+  SPIERGROEPEN,
+  type Materiaal,
+  type MateriaalKeuze,
+} from '../coach/exercises';
 import {
   BASISLIFTS,
   controleer,
@@ -29,6 +37,7 @@ import {
   type Stap,
 } from '../coach/profile';
 import { NIVEAUS } from '../coach/exercises';
+import { decimal, tr } from '../i18n';
 
 interface Props {
   initial?: Profiel;
@@ -39,25 +48,55 @@ interface Props {
 }
 
 const TITELS: Record<Stap, [string, string]> = {
-  doel: ['Wat is je doel?', 'Hierop stem ik je reps en sets af.'],
-  niveau: ['Hoe lang train je al?', 'Zo kies ik oefeningen die bij je passen.'],
-  dagen: ['Hoeveel dagen per week?', 'Tik de dagen aan waarop je traint.'],
-  tijd: ['Hoeveel tijd per training?', 'Inclusief rust, zonder omkleden.'],
-  materiaal: ['Waar train je?', 'Ik kies alleen oefeningen die je kunt doen.'],
-  prioriteit: ['Wil je iets extra trainen?', `Optioneel. Kies hoogstens ${MAX_PRIORITEIT} spiergroepen.`],
-  blessures: ['Heb je ergens last van?', 'Optioneel. Ik ontzie die plekken.'],
-  kracht: ['Hoe sterk ben je nu?', 'Optioneel. Dan kan ik je startgewichten voorstellen.'],
-  samenvatting: ['Klopt dit?', 'Tik op een regel om iets aan te passen.'],
+  doel: [
+    tr('Wat is je doel?', "What's your goal?"),
+    tr('Hierop stem ik je reps en sets af.', 'I match your reps and sets to it.'),
+  ],
+  niveau: [
+    tr('Hoe lang train je al?', 'How long have you been training?'),
+    tr('Zo kies ik oefeningen die bij je passen.', 'So I can pick exercises that suit you.'),
+  ],
+  dagen: [
+    tr('Hoeveel dagen per week?', 'How many days a week?'),
+    tr('Tik de dagen aan waarop je traint.', 'Tap the days you train.'),
+  ],
+  tijd: [
+    tr('Hoeveel tijd per training?', 'How much time per session?'),
+    tr('Inclusief rust, zonder omkleden.', 'Including rest, not counting changing.'),
+  ],
+  materiaal: [
+    tr('Waar train je?', 'Where do you train?'),
+    tr('Ik kies alleen oefeningen die je kunt doen.', 'I only pick exercises you can do.'),
+  ],
+  prioriteit: [
+    tr('Wil je iets extra trainen?', 'Want to train something extra?'),
+    tr(
+      `Optioneel. Kies hoogstens ${MAX_PRIORITEIT} spiergroepen.`,
+      `Optional. Pick at most ${MAX_PRIORITEIT} muscle groups.`,
+    ),
+  ],
+  blessures: [
+    tr('Heb je ergens last van?', 'Anything bothering you?'),
+    tr('Optioneel. Ik ontzie die plekken.', "Optional. I'll go easy on those areas."),
+  ],
+  kracht: [
+    tr('Hoe sterk ben je nu?', 'How strong are you now?'),
+    tr('Optioneel. Dan kan ik je startgewichten voorstellen.', 'Optional. Then I can suggest starting weights.'),
+  ],
+  samenvatting: [
+    tr('Klopt dit?', 'Is this right?'),
+    tr('Tik op een regel om iets aan te passen.', 'Tap a line to change it.'),
+  ],
 };
 
 const MATERIAAL_LABEL: Record<Materiaal, string> = {
-  stang: 'Stang',
+  stang: tr('Stang', 'Barbell'),
   dumbbells: 'Dumbbells',
   machine: 'Machines',
-  kabel: 'Kabels',
-  lichaamsgewicht: 'Lichaamsgewicht',
-  bank: 'Bank',
-  rek: 'Rek of optrekstang',
+  kabel: tr('Kabels', 'Cables'),
+  lichaamsgewicht: tr('Lichaamsgewicht', 'Bodyweight'),
+  bank: tr('Bank', 'Bench'),
+  rek: tr('Rek of optrekstang', 'Rack or pull-up bar'),
 };
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -94,34 +133,37 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
   const knop =
     stap === 'samenvatting'
       ? editing
-        ? 'Bewaar en maak nieuw schema'
-        : 'Maak mijn schema'
+        ? tr('Bewaar en maak nieuw schema', 'Save and make new plan')
+        : tr('Maak mijn schema', 'Make my plan')
       : terugNaarOverzicht
-        ? 'Klaar'
+        ? tr('Klaar', 'Done')
         : OPTIONEEL.includes(stap) && leeg
-          ? 'Overslaan'
-          : 'Volgende';
+          ? tr('Overslaan', 'Skip')
+          : tr('Volgende', 'Next');
 
   const [titel, uitleg] = TITELS[stap];
 
   return (
-    <div className="onboarding" role="dialog" aria-label="Vragenlijst">
+    <div className="onboarding" role="dialog" aria-label={tr('Vragenlijst', 'Questionnaire')}>
       <header className="onboarding-top">
         <button
           className="icon-btn"
           onClick={terug}
-          aria-label="Terug"
+          aria-label={tr('Terug', 'Back')}
           disabled={index === 0 && !onClose}
           style={{ visibility: index === 0 && !onClose ? 'hidden' : undefined }}
         >
           <Icon name="back" />
         </button>
-        <div className="progress-track" aria-label={`Vraag ${index + 1} van ${STAPPEN.length}`}>
+        <div
+          className="progress-track"
+          aria-label={tr(`Vraag ${index + 1} van ${STAPPEN.length}`, `Question ${index + 1} of ${STAPPEN.length}`)}
+        >
           <div className="progress-fill" style={{ width: `${voortgang(stap) * 100}%` }} />
         </div>
         {onClose ? (
           <button className="link" onClick={onClose}>
-            Sluiten
+            {tr('Sluiten', 'Close')}
           </button>
         ) : (
           <span />
@@ -159,7 +201,7 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
               columns={5}
               value={p.dagen.length}
               onChange={(n) => setP({ ...p, dagen: standaardDagen(n) })}
-              options={[2, 3, 4, 5, 6].map((n) => [n, String(n), 'dagen'])}
+              options={[2, 3, 4, 5, 6].map((n) => [n, String(n), tr('dagen', 'days')])}
             />
             <div className="weekdays" role="group" aria-label="Welke dagen">
               {DAG_KORT.map((d, i) => (
@@ -198,7 +240,11 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
                 ...(Object.keys(MATERIAAL_TEKST) as MateriaalKeuze[]).map(
                   (k) => [k, ...MATERIAAL_TEKST[k]] as [MateriaalKeuze, string, string],
                 ),
-                ['zelf', 'Zelf aanvinken', 'Kies precies wat er is'],
+                [
+                  'zelf',
+                  tr('Zelf aanvinken', 'Tick it yourself'),
+                  tr('Kies precies wat er is', 'Pick exactly what you have'),
+                ],
               ]}
             />
             {p.materiaalKeuze === 'zelf' && (
@@ -228,7 +274,7 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
                 aria-pressed={p.prioriteit.includes(g)}
                 onClick={() => setP({ ...p, prioriteit: wisselPrioriteit(p.prioriteit, g) })}
               >
-                {cap(g)}
+                {cap(GROEP_LABEL[g])}
               </button>
             ))}
           </div>
@@ -249,13 +295,15 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
                     })
                   }
                 >
-                  {cap(g)}
+                  {cap(GEWRICHT_LABEL[g])}
                 </button>
               ))}
             </div>
             <p className="disclaimer">
-              Deze app vervangt geen fysiotherapeut of arts. Heb je pijn die niet weggaat, laat het dan onderzoeken
-              voordat je zwaar gaat trainen.
+              {tr(
+                'Deze app vervangt geen fysiotherapeut of arts. Heb je pijn die niet weggaat, laat het dan onderzoeken voordat je zwaar gaat trainen.',
+                "This app doesn't replace a physiotherapist or doctor. If you have pain that doesn't go away, get it checked before training heavy.",
+              )}
             </p>
           </>
         )}
@@ -289,7 +337,7 @@ export function Onboarding({ initial, editing = false, onClose, onDone }: Props)
 
 /** Three base lifts (weight × reps) and bodyweight. Comma and point both work. */
 function KrachtVragen({ p, onChange }: { p: Profiel; onChange: (p: Profiel) => void }) {
-  const tekst = (n?: number) => (n == null ? '' : String(n).replace('.', ','));
+  const tekst = (n?: number) => (n == null ? '' : decimal(n));
   const [velden, setVelden] = useState(
     () =>
       Object.fromEntries(
@@ -320,7 +368,12 @@ function KrachtVragen({ p, onChange }: { p: Profiel; onChange: (p: Profiel) => v
 
   return (
     <div className="stack">
-      <p className="small muted">Een set die je recent haalde, bijvoorbeeld 60 kg × 8. Weet je het niet? Laat leeg.</p>
+      <p className="small muted">
+        {tr(
+          'Een set die je recent haalde, bijvoorbeeld 60 kg × 8. Weet je het niet? Laat leeg.',
+          "A set you did recently, for example 60 kg × 8. Don't know? Leave it empty.",
+        )}
+      </p>
       {BASISLIFTS.map((l) => (
         <div key={l} className="strength-row">
           <span>{LIFT_NAAM[l]}</span>
@@ -329,7 +382,7 @@ function KrachtVragen({ p, onChange }: { p: Profiel; onChange: (p: Profiel) => v
               inputMode="decimal"
               value={velden[`${l}-kg`]}
               onChange={(e) => zet(`${l}-kg`, e.target.value)}
-              aria-label={`${LIFT_NAAM[l]} gewicht in kg`}
+              aria-label={tr(`${LIFT_NAAM[l]} gewicht in kg`, `${LIFT_NAAM[l]} weight in kg`)}
             />
             <small>kg</small>
           </label>
@@ -339,21 +392,21 @@ function KrachtVragen({ p, onChange }: { p: Profiel; onChange: (p: Profiel) => v
               inputMode="numeric"
               value={velden[`${l}-reps`]}
               onChange={(e) => zet(`${l}-reps`, e.target.value)}
-              aria-label={`${LIFT_NAAM[l]} herhalingen`}
+              aria-label={tr(`${LIFT_NAAM[l]} herhalingen`, `${LIFT_NAAM[l]} reps`)}
             />
             <small>reps</small>
           </label>
-          {half(l) && <small className="form-error">Vul gewicht én reps in</small>}
+          {half(l) && <small className="form-error">{tr('Vul gewicht én reps in', 'Fill in weight and reps')}</small>}
         </div>
       ))}
       <div className="strength-row">
-        <span>Lichaamsgewicht</span>
+        <span>{tr('Lichaamsgewicht', 'Bodyweight')}</span>
         <label>
           <input
             inputMode="decimal"
             value={velden.gewicht}
             onChange={(e) => zet('gewicht', e.target.value)}
-            aria-label="Lichaamsgewicht in kg"
+            aria-label={tr('Lichaamsgewicht in kg', 'Bodyweight in kg')}
           />
           <small>kg</small>
         </label>

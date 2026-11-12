@@ -1,4 +1,5 @@
 import { e1rm } from './format';
+import { tr } from './i18n';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -48,14 +49,14 @@ export function estimateMinutes(items: { sets: number; rest: number }[]): number
 
 /** "vandaag", "gisteren", "3 dagen geleden", "2 weken geleden" or "nog nooit". */
 export function relativeDay(ts: number | undefined, now: number): string {
-  if (!ts) return 'nog nooit';
+  if (!ts) return tr('nog nooit', 'never');
   const days = Math.round((startOfDay(now) - startOfDay(ts)) / DAY);
-  if (days <= 0) return 'vandaag';
-  if (days === 1) return 'gisteren';
-  if (days < 14) return `${days} dagen geleden`;
+  if (days <= 0) return tr('vandaag', 'today');
+  if (days === 1) return tr('gisteren', 'yesterday');
+  if (days < 14) return tr(`${days} dagen geleden`, `${days} days ago`);
   const weeks = Math.round(days / 7);
-  if (weeks < 9) return `${weeks} weken geleden`;
-  return `${Math.round(days / 30)} maanden geleden`;
+  if (weeks < 9) return tr(`${weeks} weken geleden`, `${weeks} weeks ago`);
+  return tr(`${Math.round(days / 30)} maanden geleden`, `${Math.round(days / 30)} months ago`);
 }
 
 function startOfDay(ts: number): number {

@@ -1,5 +1,6 @@
 import { animFor } from '../library/exercises';
 import { ExerciseFigure } from './Figure';
+import { tr } from '../i18n';
 
 /** Small static figure; tappable when `onClick` is given. */
 export function Thumb({
@@ -20,7 +21,7 @@ export function Thumb({
       </div>
     );
   return (
-    <button className="thumb" style={style} onClick={onClick} aria-label="Uitvoering bekijken">
+    <button className="thumb" style={style} onClick={onClick} aria-label={tr('Uitvoering bekijken', 'How to do it')}>
       {fig}
     </button>
   );

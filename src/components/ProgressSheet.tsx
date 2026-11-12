@@ -17,6 +17,7 @@ import { loadSessions } from '../sessions';
 import { bestSet } from '../stats';
 import { LineChart } from './LineChart';
 import { Sheet } from './Sheet';
+import { tr } from '../i18n';
 
 export function ProgressSheet({ exerciseId, onClose }: { exerciseId: number; onClose: () => void }) {
   const ex = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
@@ -53,15 +54,15 @@ export function ProgressSheet({ exerciseId, onClose }: { exerciseId: number; onC
 
       <div className="stats">
         <div className="stat">
-          <span className="small muted">Laatst</span>
+          <span className="small muted">{tr('Laatst', 'Last')}</span>
           <strong>{last != null ? fmtMetric(last, m) : '–'}</strong>
         </div>
         <div className="stat">
-          <span className="small muted">Beste</span>
+          <span className="small muted">{tr('Beste', 'Best')}</span>
           <strong>{best != null ? fmtMetric(best, m) : '–'}</strong>
         </div>
         <div className="stat">
-          <span className="small muted">Verschil</span>
+          <span className="small muted">{tr('Verschil', 'Change')}</span>
           <strong className={diff == null || diff === 0 ? '' : diff > 0 ? 'plus' : 'minus'}>
             {diff == null ? '–' : `${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${fmtMetric(Math.abs(diff), m)}`}
           </strong>
@@ -75,7 +76,13 @@ export function ProgressSheet({ exerciseId, onClose }: { exerciseId: number; onC
           selected={selected}
           onSelect={setSelected}
         />
-        <p className="small muted chart-hint">Tik of sleep over de grafiek om een workout te kiezen. 🟡 = PR</p>
+        <p className="small muted chart-hint">
+          {tr(
+            'Tik of sleep over de grafiek om een workout te kiezen.',
+            'Tap or drag across the chart to pick a workout.',
+          )}{' '}
+          🟡 = PR
+        </p>
       </section>
 
       {sessions.length > 0 && (
@@ -83,8 +90,8 @@ export function ProgressSheet({ exerciseId, onClose }: { exerciseId: number; onC
           <table className="data-table">
             <thead>
               <tr>
-                <th>Datum</th>
-                <th>Beste set</th>
+                <th>{tr('Datum', 'Date')}</th>
+                <th>{tr('Beste set', 'Best set')}</th>
                 <th className="right">{METRIC_LABELS[m]}</th>
               </tr>
             </thead>

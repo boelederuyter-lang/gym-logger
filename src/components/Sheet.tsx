@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { tr } from '../i18n';
 
 interface Props {
   title: string;
@@ -14,7 +15,7 @@ export function Sheet({ title, onClose, children, action }: Props) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-header">
           <button className="link" onClick={onClose}>
-            Sluiten
+            {tr('Sluiten', 'Close')}
           </button>
           <h2>{title}</h2>
           <div className="sheet-action">{action}</div>

@@ -9,13 +9,14 @@ import { ProgressSheet } from '../components/ProgressSheet';
 import { Thumb } from '../components/Thumb';
 import { fmtMetric, isWeighted, metricValue } from '../progress';
 import { loadSessions } from '../sessions';
+import { locale, tr } from '../i18n';
 
 export function HistoryScreen({ onOpen }: { onOpen: (id: number) => void }) {
   const [view, setView] = useState<'workouts' | 'exercises'>('workouts');
   return (
     <div className="screen">
       <header className="page-header">
-        <h1>Voortgang</h1>
+        <h1>{tr('Voortgang', 'Progress')}</h1>
       </header>
       <main className="content">
         <div className="segmented">
@@ -23,7 +24,7 @@ export function HistoryScreen({ onOpen }: { onOpen: (id: number) => void }) {
             Workouts
           </button>
           <button className={view === 'exercises' ? 'active' : ''} onClick={() => setView('exercises')}>
-            Per oefening
+            {tr('Per oefening', 'By exercise')}
           </button>
         </div>
         {view === 'workouts' ? <WorkoutList onOpen={onOpen} /> : <ExerciseList />}
@@ -58,7 +59,14 @@ function ExerciseList() {
   }, []);
 
   if (rows?.length === 0)
-    return <p className="empty">Rond een workout af, dan zie je hier per oefening je voortgang.</p>;
+    return (
+      <p className="empty">
+        {tr(
+          'Rond een workout af, dan zie je hier per oefening je voortgang.',
+          'Finish a workout to see your progress per exercise here.',
+        )}
+      </p>
+    );
   return (
     <>
       <ul className="list card">
@@ -69,7 +77,7 @@ function ExerciseList() {
               <span className="grow">
                 <strong className="block">{r.ex.name}</strong>
                 <span className="small muted">
-                  Laatst {fmtSet(r.lastSet)} · beste {r.metric === 'e1rm' ? '1RM ' : ''}
+                  {tr('Laatst', 'Last')} {fmtSet(r.lastSet)} · {tr('beste', 'best')} {r.metric === 'e1rm' ? '1RM ' : ''}
                   {fmtMetric(r.best, r.metric)}
                 </span>
               </span>
@@ -105,16 +113,16 @@ function WorkoutList({ onOpen }: { onOpen: (id: number) => void }) {
 
   const groups = new Map<string, NonNullable<typeof data>>();
   for (const row of data ?? []) {
-    const key = new Date(row.w.startedAt).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+    const key = new Date(row.w.startedAt).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
     (groups.get(key) ?? groups.set(key, []).get(key)!).push(row);
   }
 
   return (
     <>
-      {data?.length === 0 && <p className="empty">Nog geen afgeronde workouts.</p>}
+      {data?.length === 0 && <p className="empty">{tr('Nog geen afgeronde workouts.', 'No finished workouts yet.')}</p>}
       {!!recentPrs?.length && (
         <section className="card pr-card">
-          <h3>Recente PR's 🏆</h3>
+          <h3>{tr("Recente PR's", 'Recent PRs')} 🏆</h3>
           <ul className="pr-list">
             {recentPrs.map(({ s, name, date }) => (
               <li key={s.id}>
@@ -170,7 +178,7 @@ export function WorkoutDetail({
   const { w, sets, exercises } = data;
 
   async function remove(w: Workout) {
-    if (confirm('Deze workout verwijderen?')) {
+    if (confirm(tr('Deze workout verwijderen?', 'Delete this workout?'))) {
       await deleteWorkout(w.id);
       onClose();
     }
@@ -183,15 +191,16 @@ export function WorkoutDetail({
       action={
         w.endedAt ? (
           <button className="link strong" onClick={onEdit}>
-            Bewerken
+            {tr('Bewerken', 'Edit')}
           </button>
         ) : undefined
       }
     >
       <p className="muted">
-        {new Date(w.startedAt).toLocaleString('nl-NL', { dateStyle: 'full', timeStyle: 'short' })}
+        {new Date(w.startedAt).toLocaleString(locale(), { dateStyle: 'full', timeStyle: 'short' })}
         <br />
-        {fmtDuration((w.endedAt ?? w.startedAt) - w.startedAt)} · {Math.round(volume(sets))} kg totaal volume
+        {fmtDuration((w.endedAt ?? w.startedAt) - w.startedAt)} · {Math.round(volume(sets))} kg{' '}
+        {tr('totaal volume', 'total volume')}
       </p>
       {w.exerciseIds.map((exId, i) => (
         <div key={exId} className="card">
@@ -202,7 +211,7 @@ export function WorkoutDetail({
               .map((s) => (
                 <li key={s.id} className={s.warmup ? 'muted' : ''}>
                   {fmtSet(s)}
-                  {s.warmup && ' (warming-up)'}
+                  {s.warmup && tr(' (warming-up)', ' (warm-up)')}
                   {s.pr && <span title={describePr(s, s.pr).title}> 🏆</span>}
                 </li>
               ))}
@@ -210,7 +219,7 @@ export function WorkoutDetail({
         </div>
       ))}
       <button className="btn danger-text block" onClick={() => remove(w)}>
-        Workout verwijderen
+        {tr('Workout verwijderen', 'Delete workout')}
       </button>
     </Sheet>
   );

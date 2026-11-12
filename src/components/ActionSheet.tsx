@@ -1,3 +1,5 @@
+import { tr } from '../i18n';
+
 export interface Action {
   label: string;
   onClick: () => void;
@@ -25,7 +27,7 @@ export function ActionSheet({ title, actions, onClose }: { title?: string; actio
           ))}
         </div>
         <button className="action action-cancel" onClick={onClose}>
-          Annuleer
+          {tr('Annuleer', 'Cancel')}
         </button>
       </div>
     </div>

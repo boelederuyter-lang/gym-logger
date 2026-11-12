@@ -12,6 +12,7 @@ import { showToast } from '../toast';
 import { weekSchema } from '../plan/generator';
 import { loggedDays, nextDay, startPlanDay } from '../plan/start';
 import { setWeek, usePlan } from '../plan/store';
+import { locale, tr } from '../i18n';
 
 interface Props {
   active?: Workout;
@@ -21,7 +22,7 @@ interface Props {
   onOpenPlan: () => void;
 }
 
-const DAY_LABELS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+const DAY_LABELS = tr('ma di wo do vr za zo', 'M T W T F S S').split(' ');
 
 export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplate, onOpenPlan }: Props) {
   const now = useNow(60_000);
@@ -87,11 +88,11 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
       <header className="page-header home-header">
         <div>
           <span className="date">
-            {capitalize(new Date(now).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }))}
+            {capitalize(new Date(now).toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' }))}
           </span>
-          <h1>Klaar om te trainen?</h1>
+          <h1>{tr('Klaar om te trainen?', 'Ready to train?')}</h1>
         </div>
-        <button className="icon-btn" onClick={onOpenSettings} aria-label="Instellingen">
+        <button className="icon-btn" onClick={onOpenSettings} aria-label={tr('Instellingen', 'Settings')}>
           <Icon name="settings" />
         </button>
       </header>
@@ -101,24 +102,29 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
             <span className="eyebrow">Backup</span>
             <strong className="block">
               {settings.lastBackupAt
-                ? `Je laatste backup is van ${relativeDay(settings.lastBackupAt, now)}.`
-                : 'Je hebt nog geen backup gemaakt.'}
+                ? tr(
+                    `Je laatste backup is van ${relativeDay(settings.lastBackupAt, now)}.`,
+                    `Your last backup was ${relativeDay(settings.lastBackupAt, now)}.`,
+                  )
+                : tr('Je hebt nog geen backup gemaakt.', "You haven't made a backup yet.")}
             </strong>
             <span className="small muted">
-              Je workouts staan alleen op deze telefoon. Bewaar een backup in iCloud Drive via Delen → Bewaar in
-              Bestanden.
+              {tr(
+                'Je workouts staan alleen op deze telefoon. Bewaar een backup in iCloud Drive via Delen → Bewaar in Bestanden.',
+                'Your workouts live only on this phone. Save a backup to iCloud Drive via Share → Save to Files.',
+              )}
             </span>
             <div className="row-buttons">
               <button
                 className="btn primary"
                 onClick={async () => {
-                  if (await shareBackup()) showToast('Backup gemaakt');
+                  if (await shareBackup()) showToast(tr('Backup gemaakt', 'Backup created'));
                 }}
               >
-                Backup maken
+                {tr('Backup maken', 'Make backup')}
               </button>
               <button className="btn ghost" onClick={() => snoozeBackup()}>
-                Later
+                {tr('Later', 'Later')}
               </button>
             </div>
           </section>
@@ -126,9 +132,14 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
         {active && (
           <button className="card active-card" onClick={onOpenWorkout}>
             <span className="grow">
-              <span className="eyebrow">Workout bezig</span>
+              <span className="eyebrow">{tr('Workout bezig', 'Workout in progress')}</span>
               <strong className="block card-title">{active.name}</strong>
-              <span className="small muted">Gestart {fmtDuration(now - active.startedAt)} geleden</span>
+              <span className="small muted">
+                {tr(
+                  `Gestart ${fmtDuration(now - active.startedAt)} geleden`,
+                  `Started ${fmtDuration(now - active.startedAt)} ago`,
+                )}
+              </span>
             </span>
             <span className="round-btn">
               <Icon name="play" />
@@ -138,9 +149,14 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
 
         <section className="card week-card">
           <div className="inline spread">
-            <span className="eyebrow">Deze week</span>
+            <span className="eyebrow">{tr('Deze week', 'This week')}</span>
             {streak > 0 && (
-              <span className="streak">🔥 {streak === 1 ? '1 week op rij' : `${streak} weken op rij`}</span>
+              <span className="streak">
+                🔥{' '}
+                {streak === 1
+                  ? tr('1 week op rij', '1 week streak')
+                  : tr(`${streak} weken op rij`, `${streak} week streak`)}
+              </span>
             )}
           </div>
           <div className="week-dots">
@@ -157,7 +173,7 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
               <span className="small muted">{thisWeek.length === 1 ? 'workout' : 'workouts'}</span>
             </div>
             <div>
-              <strong className="num">{Math.round(weekVolume).toLocaleString('nl-NL')}</strong>
+              <strong className="num">{Math.round(weekVolume).toLocaleString(locale())}</strong>
               <span className="small muted">kg volume</span>
             </div>
           </div>
@@ -167,12 +183,13 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           <section className="card next-card">
             <span className="eyebrow">
               {plan.schema.coach
-                ? `Schema · dag ${planNext! + 1}`
-                : `Schema · week ${plan.week} · dag ${planNext! + 1}`}
+                ? `${tr('Schema', 'Plan')} · ${tr('dag', 'day')} ${planNext! + 1}`
+                : `${tr('Schema', 'Plan')} · ${tr('week', 'week')} ${plan.week} · ${tr('dag', 'day')} ${planNext! + 1}`}
             </span>
             <strong className="card-title big-title">{planDay.naam}</strong>
             <span className="small muted">
-              ± {planDay.minuten} min · {planDay.oefeningen.length} oefeningen{planDay.cardio ? ' + cardio' : ''}
+              ± {planDay.minuten} min · {planDay.oefeningen.length} {tr('oefeningen', 'exercises')}
+              {planDay.cardio ? ' + cardio' : ''}
             </span>
             <div className="thumb-row">
               {planDay.oefeningen
@@ -186,31 +203,34 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
               Start {planDay.naam}
             </button>
             <button className="link center" onClick={onOpenPlan}>
-              Hele schema bekijken
+              {tr('Hele schema bekijken', 'View full plan')}
             </button>
           </section>
         )}
         {plan && !planDay && !active && (
           <section className="card next-card">
-            <span className="eyebrow">Schema</span>
+            <span className="eyebrow">{tr('Schema', 'Plan')}</span>
             <strong className="card-title big-title">
               {plan.schema.coach
-                ? 'Week afgerond! 🎉'
+                ? tr('Week afgerond! 🎉', 'Week complete! 🎉')
                 : plan.week < 4
-                  ? `Week ${plan.week} afgerond! 🎉`
-                  : 'Blok afgerond! 🎉'}
+                  ? tr(`Week ${plan.week} afgerond! 🎉`, `Week ${plan.week} complete! 🎉`)
+                  : tr('Blok afgerond! 🎉', 'Block complete! 🎉')}
             </strong>
             {plan.schema.coach ? (
               <span className="small muted">
-                Alle trainingen van deze week gedaan. Maandag staat je schema weer klaar.
+                {tr(
+                  'Alle trainingen van deze week gedaan. Maandag staat je schema weer klaar.',
+                  'All sessions done for this week. Your plan is ready again on Monday.',
+                )}
               </span>
             ) : plan.week < 4 ? (
               <button className="btn primary block big" onClick={() => setWeek(plan.week + 1)}>
-                Door naar week {plan.week + 1}
+                {tr(`Door naar week ${plan.week + 1}`, `On to week ${plan.week + 1}`)}
               </button>
             ) : (
               <button className="btn primary block big" onClick={onOpenPlan}>
-                Nieuw blok starten
+                {tr('Nieuw blok starten', 'Start new block')}
               </button>
             )}
           </section>
@@ -218,10 +238,10 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
 
         {plan ? null : next ? (
           <section className="card next-card">
-            <span className="eyebrow">Volgende training</span>
+            <span className="eyebrow">{tr('Volgende training', 'Next workout')}</span>
             <strong className="card-title big-title">{next.name}</strong>
             <span className="small muted">
-              ± {minutes(next)} min · {next.items.length} oefeningen · laatst{' '}
+              ± {minutes(next)} min · {next.items.length} {tr('oefeningen', 'exercises')} · {tr('laatst', 'last')}{' '}
               {relativeDay(lastByTemplate.get(next.id), now)}
             </span>
             <div className="thumb-row">
@@ -235,13 +255,18 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
           </section>
         ) : (
           <section className="card empty-card">
-            <p>Maak een trainingsschema of een eigen programma, dan zet ik hier je volgende training klaar.</p>
+            <p>
+              {tr(
+                'Maak een trainingsschema of een eigen programma, dan zet ik hier je volgende training klaar.',
+                'Create a training plan or your own program, and your next workout will be ready here.',
+              )}
+            </p>
             <div className="row-buttons">
               <button className="btn primary" onClick={onOpenPlan}>
-                Schema maken
+                {tr('Schema maken', 'Create plan')}
               </button>
               <button className="btn secondary" onClick={onNewTemplate}>
-                + Programma
+                + {tr('Programma', 'Program')}
               </button>
             </div>
           </section>
@@ -249,7 +274,9 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
 
         {others.length > 0 && (
           <>
-            <h2 className="section-title">{plan ? "Programma's" : "Andere programma's"}</h2>
+            <h2 className="section-title">
+              {plan ? tr("Programma's", 'Programs') : tr("Andere programma's", 'Other programs')}
+            </h2>
             <ul className="list card">
               {others.map((t) => (
                 <li key={t.id}>
@@ -257,7 +284,7 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
                     <span className="grow">
                       <strong className="block">{t.name}</strong>
                       <span className="small muted">
-                        ± {minutes(t)} min · laatst {relativeDay(lastByTemplate.get(t.id), now)}
+                        ± {minutes(t)} min · {tr('laatst', 'last')} {relativeDay(lastByTemplate.get(t.id), now)}
                       </span>
                     </span>
                     <span className="round-btn small-round">
@@ -272,7 +299,7 @@ export function HomeScreen({ active, onOpenWorkout, onOpenSettings, onNewTemplat
 
         {!active && (
           <button className="btn secondary block" onClick={() => start()}>
-            Lege workout starten
+            {tr('Lege workout starten', 'Start empty workout')}
           </button>
         )}
       </main>

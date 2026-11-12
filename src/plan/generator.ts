@@ -12,6 +12,7 @@ import {
   type PlanOefening,
 } from './exercises';
 import type { Patroon as CoachPatroon } from '../coach/exercises';
+import { tr } from '../i18n';
 
 export type Doel = 'kracht' | 'spiermassa' | 'fitheid' | 'vetverlies';
 export type Niveau = 'beginner' | 'gevorderd';
@@ -89,18 +90,18 @@ export interface WeekDag extends SchemaDag {
 }
 
 export const DOELEN: Record<Doel, string> = {
-  kracht: 'Kracht',
-  spiermassa: 'Spiermassa',
-  fitheid: 'Algemene fitheid',
-  vetverlies: 'Vetverlies',
+  kracht: tr('Kracht', 'Strength'),
+  spiermassa: tr('Spiermassa', 'Muscle'),
+  fitheid: tr('Algemene fitheid', 'General fitness'),
+  vetverlies: tr('Vetverlies', 'Fat loss'),
 };
-export const NIVEAUS: Record<Niveau, string> = { beginner: 'Beginner', gevorderd: 'Gevorderd' };
+export const NIVEAUS: Record<Niveau, string> = { beginner: 'Beginner', gevorderd: tr('Gevorderd', 'Intermediate') };
 export const DAGEN = [2, 3, 4, 5];
 export const TIJDEN = [30, 45, 60, 75];
 export const APPARATUUR_KEUZES: Record<ApparatuurKeuze, string> = {
-  gym: 'Volledige gym',
-  dumbbells: 'Alleen dumbbells',
-  thuis: 'Thuis zonder spullen',
+  gym: tr('Volledige gym', 'Full gym'),
+  dumbbells: tr('Alleen dumbbells', 'Dumbbells only'),
+  thuis: tr('Thuis zonder spullen', 'Home, no equipment'),
 };
 
 export const MIN_OEFENINGEN = 3;
@@ -269,20 +270,35 @@ const SPLITS: Record<number, { naam: string; dagen: string[] }> = {
 export const WEKEN = [
   {
     nr: 1,
-    label: 'Basis',
-    uitleg:
+    label: tr('Basis', 'Base'),
+    uitleg: tr(
       'Kies per oefening een gewicht waarmee je alle sets haalt met nog 1–2 reps over. De app onthoudt je gewichten voor de volgende weken.',
+      'For each exercise, pick a weight you can do all sets with, 1–2 reps to spare. The app remembers your weights for the next weeks.',
+    ),
   },
-  { nr: 2, label: '+1 rep', uitleg: 'Zelfde gewichten als week 1, maar doe 1 rep extra per set.' },
+  {
+    nr: 2,
+    label: '+1 rep',
+    uitleg: tr(
+      'Zelfde gewichten als week 1, maar doe 1 rep extra per set.',
+      'Same weights as week 1, but do 1 extra rep per set.',
+    ),
+  },
   {
     nr: 3,
-    label: 'Zwaarder',
-    uitleg: 'Gewicht omhoog: +2,5 kg voor bovenlichaam, +5 kg voor onderlichaam. Reps terug naar week 1.',
+    label: tr('Zwaarder', 'Heavier'),
+    uitleg: tr(
+      'Gewicht omhoog: +2,5 kg voor bovenlichaam, +5 kg voor onderlichaam. Reps terug naar week 1.',
+      'Weight up: +2.5 kg for upper body, +5 kg for lower body. Reps back to week 1.',
+    ),
   },
   {
     nr: 4,
     label: 'Deload',
-    uitleg: 'Herstelweek: ongeveer 40% minder sets met het gewicht van week 1. Focus op techniek.',
+    uitleg: tr(
+      'Herstelweek: ongeveer 40% minder sets met het gewicht van week 1. Focus op techniek.',
+      'Recovery week: about 40% fewer sets with the week 1 weight. Focus on technique.',
+    ),
   },
 ];
 

@@ -12,6 +12,7 @@ import type { EigenCoachInfo } from './coach/exercises';
 import type { PlannedSet } from './warmup';
 import { getPlan, restorePlan } from './plan/store';
 import { getProfiel, restoreProfiel } from './coach/profileStore';
+import { tr } from './i18n';
 
 export type { Equipment };
 
@@ -201,7 +202,7 @@ export async function startWorkout(template?: Template, extraExercises: Exercise
     const rest: Record<number, number> = {};
     for (const i of items) if (i.restSeconds) rest[i.exerciseId] = i.restSeconds;
     const workoutId = await db.workouts.add({
-      name: template?.name ?? 'Losse workout',
+      name: template?.name ?? tr('Losse workout', 'Quick workout'),
       templateId: template?.id,
       startedAt: Date.now(),
       exerciseIds: items.map((i) => i.exerciseId),
@@ -499,7 +500,7 @@ export async function exportData(): Promise<string> {
 
 export async function importData(json: string) {
   const data = JSON.parse(json);
-  if (data.version !== 1 && data.version !== 2) throw new Error('Onbekend bestandsformaat');
+  if (data.version !== 1 && data.version !== 2) throw new Error(tr('Onbekend bestandsformaat', 'Unknown file format'));
   if (data.version === 1) data.exercises.forEach(upgradeExercise);
   await db.transaction('rw', [db.exercises, db.templates, db.workouts, db.sets], async () => {
     await Promise.all([db.exercises.clear(), db.templates.clear(), db.workouts.clear(), db.sets.clear()]);
